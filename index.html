@@ -766,7 +766,12 @@ select.filter-select {
 
         <!-- Mic feedback bar -->
         <div id="teacherMicBar" style="margin-top:8px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <div style="font-size:24px" id="teacherMicIcon">🎤</div>
+          <button id="teacherMicPauseBtn" onclick="toggleTeacherMic()"
+            title="Pause or resume the microphone"
+            style="background:none;border:1px solid var(--border);color:var(--text-secondary);font-size:18px;width:36px;height:36px;border-radius:50%;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center">
+            ⏸
+          </button>
+          <div style="font-size:20px;flex-shrink:0" id="teacherMicIcon">🎤</div>
           <div style="flex:1">
             <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px" id="teacherListeningLabel">LISTENING…</div>
             <div style="height:8px;background:var(--border);border-radius:4px;margin-top:6px;overflow:hidden">
@@ -3312,6 +3317,21 @@ function switchToLaz() {
 const LAZ_PANELS = ['recorder','tuner','learn','songsearch','metronome','chorddict','setlist','practicetimer'];
 
 function showLazHub() {
+  // Stop any running audio before leaving
+  if (strumPlayInterval)     { clearInterval(strumPlayInterval); strumPlayInterval = null; }
+  if (_progressionRunning)   stopProgression();
+  if (teacherPlaybackRunning) stopTeacherPlayback();
+
+  // Reset strum UI
+  document.querySelectorAll('.strum-beat').forEach(el => {
+    el.style.background = ''; el.style.color = ''; el.style.transform = '';
+  });
+  document.querySelectorAll('.chord-box').forEach(el => { el.style.outline = 'none'; });
+  const strumBtn = document.getElementById('strumPlayBtn');
+  if (strumBtn) strumBtn.textContent = '🎸 PLAY THROUGH';
+  const chordsBtn = document.getElementById('chordsPlayBtn');
+  if (chordsBtn) chordsBtn.textContent = '🎸 PLAY THROUGH';
+
   LAZ_PANELS.forEach(p => {
     const cap = p.charAt(0).toUpperCase() + p.slice(1);
     const el = document.getElementById('lazPanel' + cap);
@@ -4102,6 +4122,11 @@ function renderTeacherNote() {
   document.getElementById('teacherDetectedFreq').textContent = '';
   document.getElementById('teacherResult').style.display = 'none';
   document.getElementById('teacherListeningLabel').textContent = 'LISTENING — play and hold the note';
+  // Reset pause button to active state
+  const pauseBtn = document.getElementById('teacherMicPauseBtn');
+  const micBar   = document.getElementById('teacherMicBar');
+  if (pauseBtn) { pauseBtn.textContent = '⏸'; pauseBtn.style.borderColor = 'var(--border)'; pauseBtn.style.color = 'var(--text-secondary)'; pauseBtn.style.background = 'none'; }
+  if (micBar)   micBar.style.opacity = '1';
   // Drive the action prompt
   const ap = document.getElementById('teacherActionText');
   const apSub = document.getElementById('teacherActionSub');
@@ -4332,6 +4357,46 @@ function renderMiniFretboard(tab) {
 }
 
 // Teacher mic listening loop
+function toggleTeacherMic() {
+  const btn = document.getElementById('teacherMicPauseBtn');
+  const bar = document.getElementById('teacherMicBar');
+
+  if (teacherListening) {
+    // Pause
+    teacherListening = false;
+    cancelAnimationFrame(teacherAnimFrame);
+    document.getElementById('teacherMicLevel').style.width = '0%';
+    document.getElementById('teacherDetectedNote').textContent = '—';
+    document.getElementById('teacherDetectedFreq').textContent = '';
+    document.getElementById('teacherListeningLabel').textContent = 'MIC PAUSED — tap ▶ to resume';
+    document.getElementById('teacherMicIcon').textContent = '🔇';
+    if (btn) {
+      btn.textContent = '▶';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'var(--accent)';
+      btn.style.background = 'var(--accent-glow)';
+    }
+    if (bar) bar.style.opacity = '0.5';
+  } else {
+    // Resume
+    if (!teacherMicAnalyser) {
+      showToast('No microphone connected', 'error');
+      return;
+    }
+    teacherListening = true;
+    teacherListenLoop();
+    document.getElementById('teacherListeningLabel').textContent = 'LISTENING — play and hold the note';
+    document.getElementById('teacherMicIcon').textContent = '🎤';
+    if (btn) {
+      btn.textContent = '⏸';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text-secondary)';
+      btn.style.background = 'none';
+    }
+    if (bar) bar.style.opacity = '1';
+  }
+}
+
 function teacherListenLoop() {
   if (!teacherListening || !teacherMicAnalyser) return;
   teacherAnimFrame = requestAnimationFrame(teacherListenLoop);
@@ -4438,6 +4503,95 @@ function teacherSongComplete() {
 }
 
 // Play the note via Web Audio API oscillator
+// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// Guitar pluck synthesis — Karplus-Strong computed in JS
+//
+// We run the algorithm entirely in JavaScript (not Web Audio
+// nodes) to avoid feedback loop instability in the browser.
+// The result is pre-rendered into an AudioBuffer and played
+// back clean — sounds like a real plucked string every time.
+// ─────────────────────────────────────────────────────────
+const _pluckCache = {};  // cache rendered buffers by freq
+
+function pluckString(ctx, freq, startTime, duration, volume) {
+  volume   = (volume   === undefined) ? 0.45 : volume;
+  duration = (duration === undefined) ? 2.0  : duration;
+
+  // Round freq to nearest cent for cache key
+  const key = Math.round(freq * 10) + '_' + ctx.sampleRate;
+
+  let buf = _pluckCache[key];
+  if (!buf) {
+    const sr         = ctx.sampleRate;
+    const period     = Math.max(2, Math.round(sr / freq));
+    const totalSamps = Math.round(sr * 2.5);   // always render 2.5s
+
+    // Karplus-Strong in plain JS:
+    //   ring[] is the delay line (length = period)
+    //   Each output sample = average of ring[pos] and ring[prev]
+    //   (the averaging IS the low-pass filter)
+    const ring   = new Float32Array(period);
+    const output = new Float32Array(totalSamps);
+
+    // Seed delay line with band-limited noise
+    for (let i = 0; i < period; i++) {
+      ring[i] = (Math.random() * 2 - 1) * 0.9;
+    }
+
+    // Damping coefficient — higher = brighter / longer sustain
+    // 0.496 gives ~1.5s decay at standard tuning
+    const damp = 0.496;
+
+    let pos = 0;
+    for (let n = 0; n < totalSamps; n++) {
+      const prev  = (pos + period - 1) % period;
+      const avg   = damp * (ring[pos] + ring[prev]);
+      output[n]   = ring[pos];
+      ring[pos]   = avg;
+      pos         = (pos + 1) % period;
+    }
+
+    // Normalise to ±1 and apply smooth fade-out at the tail
+    let peak = 0;
+    for (let i = 0; i < totalSamps; i++) {
+      if (Math.abs(output[i]) > peak) peak = Math.abs(output[i]);
+    }
+    if (peak > 0) {
+      const invPeak  = 0.95 / peak;
+      const fadeStart = Math.round(totalSamps * 0.75);
+      for (let i = 0; i < totalSamps; i++) {
+        let s = output[i] * invPeak;
+        if (i > fadeStart) {
+          s *= 1 - (i - fadeStart) / (totalSamps - fadeStart);
+        }
+        output[i] = s;
+      }
+    }
+
+    buf = ctx.createBuffer(1, totalSamps, sr);
+    buf.getChannelData(0).set(output);
+    _pluckCache[key] = buf;
+  }
+
+  // Trim to requested duration
+  const playbackSamps = Math.min(buf.length, Math.round(ctx.sampleRate * duration));
+
+  const src  = ctx.createBufferSource();
+  src.buffer = buf;
+
+  // Master gain — just volume, no envelope needed (buffer already fades)
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(volume, startTime);
+
+  src.connect(gain);
+  gain.connect(ctx.destination);
+  src.start(startTime);
+  src.stop(startTime + duration + 0.05);
+
+  return gain;
+}
+
 function teacherPlayNote() {
   if (!teacherSong) return;
   const note = teacherSong.notes[teacherNoteIdx];
@@ -4446,20 +4600,7 @@ function teacherPlayNote() {
   if (!teacherAudioCtx) teacherAudioCtx = new AudioContext();
   if (teacherAudioCtx.state === 'suspended') teacherAudioCtx.resume();
 
-  const osc = teacherAudioCtx.createOscillator();
-  const gain = teacherAudioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(teacherAudioCtx.destination);
-
-  // Guitar-like tone: sawtooth with quick decay
-  osc.type = 'sawtooth';
-  osc.frequency.value = note.freq;
-  gain.gain.setValueAtTime(0, teacherAudioCtx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.3, teacherAudioCtx.currentTime + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.001, teacherAudioCtx.currentTime + 1.2);
-
-  osc.start(teacherAudioCtx.currentTime);
-  osc.stop(teacherAudioCtx.currentTime + 1.3);
+  pluckString(teacherAudioCtx, note.freq, teacherAudioCtx.currentTime, 2.0, 0.5);
   showToast(`🔊 ${note.noteName} — ${note.freq.toFixed(1)} Hz`, 'success');
 }
 
@@ -4500,21 +4641,8 @@ function teacherPlaySong() {
     const t = startTime + (i * beatMs / 1000);
     const noteDur = Math.min(beatMs / 1000 * 0.85, 0.9);
 
-    // Build guitar-like pluck: sawtooth + slight distortion via wave shaping
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.value = note.freq;
-    // Pluck envelope: instant attack, quick decay, hold, release
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.35, t + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.06);
-    gain.gain.setValueAtTime(0.12, t + noteDur * 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + noteDur);
-    osc.start(t);
-    osc.stop(t + noteDur + 0.05);
+    // Karplus-Strong guitar pluck — same engine as HEAR NOTE button
+    pluckString(ctx, note.freq, t, noteDur * 1.1, 0.45);
 
     // Also schedule a visual highlight at each note's time
     const delayMs = (i * beatMs);
@@ -4996,6 +5124,9 @@ function addSongHistory(q) {
 }
 
 function renderSongResult(data) {
+  // Stop any playback from the previous song
+  if (strumPlayInterval)   { clearInterval(strumPlayInterval); strumPlayInterval = null; }
+  if (_progressionRunning) stopProgression();
   document.getElementById('songSearchLoading').style.display = 'none';
   document.getElementById('songSearchEmpty').style.display = 'none';
   document.getElementById('songSearchResult').style.display = 'block';
@@ -5033,9 +5164,13 @@ function renderSongResult(data) {
   `;
 
   // CHORDS pane
+  const capoVal = data.capo || 0;
   document.getElementById('songPaneChords').innerHTML = `
-    ${data.chord_progression ? `<div style="font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:16px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px">PROGRESSION: ${data.chord_progression}</div>` : ''}
-    <div class="chord-grid">${(data.chords||[]).map(c => renderChordBox(c)).join('')}</div>`;
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      ${data.chord_progression ? `<div style="font-family:var(--mono);font-size:13px;color:var(--accent);padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;flex:1">PROGRESSION: ${data.chord_progression}</div>` : '<div></div>'}
+      <button class="btn btn-sm btn-primary" id="chordsPlayBtn" onclick="chordsPlayThrough()" title="Play through all chords at song tempo with strum pattern">🎸 PLAY THROUGH</button>
+    </div>
+    <div class="chord-grid">${(data.chords||[]).map(c => renderChordBox(c, capoVal)).join('')}</div>`;
 
   // LYRICS pane
   const lyricsHtml = (data.lyrics_with_chords || 'Lyrics not available')
@@ -5057,7 +5192,8 @@ function renderSongResult(data) {
   showSongTab('chords', document.querySelector('.song-result-tab'));
 }
 
-function renderChordBox(chord) {
+function renderChordBox(chord, capo) {
+  capo = capo || 0;
   const STRINGS = 6;
   const FRETS_SHOWN = 5;
   const frets = chord.frets || [0,0,0,0,0,0];
@@ -5131,44 +5267,89 @@ function renderStrumPattern(data) {
     ${data.strum_note ? `<div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:10px;padding:8px 12px;background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:4px">💡 ${data.strum_note}</div>` : ''}
     <div style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">PLAY ALONG</div>
     <div style="display:flex;gap:10px;align-items:center">
-      <button class="btn btn-sm" onclick="strumPlayAlong()" id="strumPlayBtn">▶ PLAY AT BPM</button>
+      <button class="btn btn-sm btn-primary" onclick="strumPlayAlong()" id="strumPlayBtn">🎸 PLAY THROUGH</button>
       <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${data.bpm || 120} BPM — click to hear the rhythm</span>
     </div>`;
 }
 
 let strumPlayInterval = null;
-let strumBeatIdx = 0;
+let strumBeatIdx     = 0;
+let strumBarIdx      = 0;   // which chord (bar) we're on
+
 function strumPlayAlong() {
   const btn = document.getElementById('strumPlayBtn');
   if (strumPlayInterval) {
     clearInterval(strumPlayInterval);
     strumPlayInterval = null;
-    btn.textContent = '▶ PLAY AT BPM';
+    if (btn) btn.textContent = '▶ PLAY AT BPM';
     return;
   }
   if (!currentSongData) return;
-  btn.textContent = '⏹ STOP';
-  const bpm = currentSongData.bpm || 120;
-  const pattern = currentSongData.strum_pattern || [];
+  if (btn) btn.textContent = '⏹ STOP';
+
+  const bpm         = currentSongData.bpm || 120;
+  const pattern     = currentSongData.strum_pattern || [];
+  const chords      = currentSongData.chords || [];
+  const capo        = currentSongData.capo || 0;
   const beatsPerBar = currentSongData.time_signature === '3/4' ? 3 : 4;
-  const subdivs = pattern.length / beatsPerBar || 2;
-  const msPerSubdiv = (60000 / bpm) / (subdivs / beatsPerBar > 1 ? 2 : 1);
+
+  // How many strum subdivisions per bar?
+  // If the pattern has 8 entries for 4/4, that's 2 subdivs per beat
+  const subdivsPerBar = pattern.length || beatsPerBar;
+  const msPerSubdiv   = (60000 / bpm / beatsPerBar) * (beatsPerBar / subdivsPerBar) * beatsPerBar;
+  // Simplified: one subdivision fires every (60000/bpm / subdivsPerBeat) ms
+  // subdivsPerBeat = subdivsPerBar / beatsPerBar
+  const subdivsPerBeat = subdivsPerBar / beatsPerBar;
+  const msPerSubdivFinal = 60000 / bpm / subdivsPerBeat;
+
   strumBeatIdx = 0;
+  strumBarIdx  = 0;
+
   if (!teacherAudioCtx) teacherAudioCtx = new AudioContext();
+  if (teacherAudioCtx.state === 'suspended') teacherAudioCtx.resume();
+
   strumPlayInterval = setInterval(() => {
-    const beat = pattern[strumBeatIdx % pattern.length];
-    if (beat && beat.dir !== 'R') {
-      const osc = teacherAudioCtx.createOscillator();
-      const g = teacherAudioCtx.createGain();
-      osc.connect(g); g.connect(teacherAudioCtx.destination);
-      osc.type = 'triangle';
-      osc.frequency.value = beat.accent ? 440 : (beat.dir === 'D' ? 280 : 350);
-      g.gain.setValueAtTime(beat.accent ? 0.2 : 0.1, teacherAudioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, teacherAudioCtx.currentTime + 0.05);
-      osc.start(); osc.stop(teacherAudioCtx.currentTime + 0.06);
+    // Which position in the strum pattern?
+    const patPos = strumBeatIdx % subdivsPerBar;
+
+    // Advance to next chord every full bar
+    strumBarIdx = Math.floor(strumBeatIdx / subdivsPerBar);
+
+    const beat = pattern[patPos] || { dir: 'D', beat: patPos + 1, accent: patPos === 0 };
+
+    if (beat.dir !== 'R') {
+      if (chords.length) {
+        // Cycle through chords — one chord per bar
+        const chord = chords[strumBarIdx % chords.length];
+        const frets = chord?.frets || [0,0,0,0,0,0];
+        strumChord(frets, capo, teacherAudioCtx,
+                   teacherAudioCtx.currentTime, beat.dir, 0.55);
+      } else {
+        // Fallback click when no chord data
+        const osc = teacherAudioCtx.createOscillator();
+        const g   = teacherAudioCtx.createGain();
+        osc.connect(g); g.connect(teacherAudioCtx.destination);
+        osc.type = 'triangle';
+        osc.frequency.value = beat.accent ? 440 : (beat.dir === 'D' ? 280 : 350);
+        g.gain.setValueAtTime(beat.accent ? 0.2 : 0.1, teacherAudioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, teacherAudioCtx.currentTime + 0.05);
+        osc.start(); osc.stop(teacherAudioCtx.currentTime + 0.06);
+      }
     }
+
+    // Highlight the active strum beat in the UI
+    document.querySelectorAll('.strum-beat').forEach((el, i) => {
+      el.style.background = i === patPos ? 'var(--accent)' : '';
+      el.style.color      = i === patPos ? '#141210' : '';
+      el.style.transform  = i === patPos ? 'scale(1.15)' : 'scale(1)';
+    });
+    // Highlight active chord name
+    document.querySelectorAll('.chord-box').forEach((el, i) => {
+      el.style.outline   = i === (strumBarIdx % chords.length) ? '2px solid var(--accent)' : 'none';
+    });
+
     strumBeatIdx++;
-  }, msPerSubdiv);
+  }, msPerSubdivFinal);
 }
 
 function quickSendToLearn() {
@@ -5195,12 +5376,146 @@ function refreshSongSearch() {
   searchSong();
 }
 
+// ── Play the full chord progression at song tempo ──
+let _progressionTimer = null;
+let _progressionRunning = false;
+
+function strumSongProgression() {
+  if (_progressionRunning) {
+    stopProgression();
+    return;
+  }
+  if (!currentSongData) return;
+
+  const chords  = currentSongData.chords || [];
+  const bpm     = currentSongData.bpm || 100;
+  const capo    = currentSongData.capo || 0;
+  const pattern = currentSongData.strum_pattern || [];
+  if (!chords.length) { showToast('No chords to play', 'error'); return; }
+
+  if (!teacherAudioCtx) teacherAudioCtx = new AudioContext();
+  if (teacherAudioCtx.state === 'suspended') teacherAudioCtx.resume();
+
+  _progressionRunning = true;
+
+  // Update button
+  const btn = document.querySelector('[onclick="strumSongProgression()"]');
+  if (btn) btn.textContent = '⏹ STOP';
+
+  const ctx       = teacherAudioCtx;
+  const beatsPerBar   = currentSongData.time_signature === '3/4' ? 3 : 4;
+  const secPerBeat    = 60 / bpm;
+  const secPerBar     = secPerBeat * beatsPerBar;
+
+  // Work out strum directions from pattern if available
+  // D = down strum, U = up, X = mute (skip), R = rest (skip)
+  const strumDirs = pattern.length
+    ? pattern.filter(p => p.dir === 'D' || p.dir === 'U').map(p => p.dir)
+    : ['D','D','U','U','D','U'].slice(0, beatsPerBar * 2);
+
+  const startTime = ctx.currentTime + 0.1;
+
+  // Schedule each chord for one bar each
+  chords.forEach((chord, ci) => {
+    const barStart = startTime + ci * secPerBar;
+    const frets    = chord.frets || [0,0,0,0,0,0];
+    const noteDur  = secPerBar * 0.95;
+
+    if (strumDirs.length) {
+      // Play strum pattern within the bar
+      const subdivs     = strumDirs.length;
+      const secPerSubdiv = secPerBar / subdivs;
+      strumDirs.forEach((dir, si) => {
+        strumChord(frets, capo, ctx, barStart + si * secPerSubdiv, dir, noteDur);
+      });
+    } else {
+      // Simple down strum on beat 1
+      strumChord(frets, capo, ctx, barStart, 'D', noteDur);
+    }
+
+    // Visual: highlight the chord at its scheduled time
+    const delayMs = (barStart - ctx.currentTime) * 1000;
+    _progressionTimer = setTimeout(() => {
+      if (!_progressionRunning) return;
+      // Flash the chord name in the progression bar
+      document.querySelectorAll('.chord-box').forEach((box, i) => {
+        box.style.outline = i === ci ? '2px solid var(--accent)' : 'none';
+        box.style.transform = i === ci ? 'scale(1.05)' : 'scale(1)';
+        box.style.transition = 'all .1s';
+      });
+    }, delayMs);
+  });
+
+  // Stop after all chords finish
+  const totalSec = chords.length * secPerBar + 0.5;
+  setTimeout(() => {
+    if (_progressionRunning) stopProgression();
+  }, totalSec * 1000);
+}
+
+function stopProgression() {
+  _progressionRunning = false;
+  clearTimeout(_progressionTimer);
+  if (strumPlayInterval) { clearInterval(strumPlayInterval); strumPlayInterval = null; }
+  // Reset all play buttons
+  const btn = document.querySelector('[onclick="strumSongProgression()"]');
+  if (btn) btn.textContent = '🎸 PLAY PROGRESSION';
+  const strumBtn = document.getElementById('strumPlayBtn');
+  if (strumBtn) strumBtn.textContent = '🎸 PLAY THROUGH';
+  const chordsBtn = document.getElementById('chordsPlayBtn');
+  if (chordsBtn) chordsBtn.textContent = '🎸 PLAY THROUGH';
+  // Clear all highlights
+  document.querySelectorAll('.chord-box').forEach(box => {
+    box.style.outline = 'none'; box.style.transform = 'scale(1)';
+  });
+  document.querySelectorAll('.strum-beat').forEach(el => {
+    el.style.background = ''; el.style.color = ''; el.style.transform = '';
+  });
+}
+
+function chordsPlayThrough() {
+  const btn = document.getElementById('chordsPlayBtn');
+  // If already playing, stop
+  if (strumPlayInterval) {
+    clearInterval(strumPlayInterval);
+    strumPlayInterval = null;
+    if (btn) { btn.textContent = '🎸 PLAY THROUGH'; btn.classList.remove('btn-primary'); btn.classList.add('btn-primary'); }
+    document.querySelectorAll('.strum-beat').forEach(el => {
+      el.style.background = ''; el.style.color = ''; el.style.transform = '';
+    });
+    document.querySelectorAll('.chord-box').forEach(el => { el.style.outline = 'none'; });
+    return;
+  }
+  if (!currentSongData) return;
+  if (btn) btn.textContent = '⏹ STOP';
+  // Show the strum pattern visually if on chords tab — switch to strum tab
+  // Actually keep on chords tab so chord highlights are visible
+  strumPlayAlong();
+  // Override the stop button reference since strumPlayAlong uses strumPlayBtn
+  // Patch: when strumPlayAlong stops, also reset chordsPlayBtn
+  const origStop = window._strumStopPatch;
+  window._strumStopPatch = setInterval(() => {
+    if (!strumPlayInterval) {
+      if (btn) btn.textContent = '🎸 PLAY THROUGH';
+      clearInterval(window._strumStopPatch);
+    }
+  }, 200);
+}
+
 function showSongTab(name, el) {
   document.querySelectorAll('.song-result-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.song-result-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('songPane' + name.charAt(0).toUpperCase() + name.slice(1))?.classList.add('active');
   if (el) el.classList.add('active');
   else document.querySelectorAll('.song-result-tab')[0]?.classList.add('active');
+  // Stop playback when switching tabs — avoids audio running invisibly
+  if (name !== 'chords' && name !== 'strum') {
+    if (strumPlayInterval) { clearInterval(strumPlayInterval); strumPlayInterval = null; }
+    const sb = document.getElementById('strumPlayBtn');   if (sb) sb.textContent = '🎸 PLAY THROUGH';
+    const cb = document.getElementById('chordsPlayBtn');  if (cb) cb.textContent = '🎸 PLAY THROUGH';
+    document.querySelectorAll('.chord-box').forEach(el => { el.style.outline = 'none'; });
+    document.querySelectorAll('.strum-beat').forEach(el => { el.style.background=''; el.style.color=''; el.style.transform=''; });
+  }
 }
 
 // ── Save current song result to personal vault ──
@@ -5459,28 +5774,47 @@ function renderChordDict(voicings) {
       <div class="chord-detail-full">${v.position || 'Position ' + (i+1)}</div>
       ${renderChordBox(v)}
       ${v.note_names ? `<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:8px">${v.note_names.join(' · ')}</div>` : ''}
-      <button class="btn btn-sm" style="margin-top:10px;width:100%" onclick="playChordSound(${JSON.stringify(v.frets)})">🔊 HEAR IT</button>
+      <button class="btn btn-sm" style="margin-top:10px;width:100%" onclick="playChordSound(${JSON.stringify(v.frets)}, currentSongData&&currentSongData.capo||0)">🎸 STRUM</button>
     </div>`).join('');
 }
 
-function playChordSound(frets) {
-  if (!teacherAudioCtx) teacherAudioCtx = new AudioContext();
-  const BASE_FREQS = [82.41, 110, 146.83, 196, 246.94, 329.63]; // E A D G B e
-  frets.forEach((f, i) => {
-    if (f < 0) return;
-    const freq = BASE_FREQS[i] * Math.pow(2, f/12);
-    const delay = i * 0.04;
-    const osc = teacherAudioCtx.createOscillator();
-    const g = teacherAudioCtx.createGain();
-    osc.connect(g); g.connect(teacherAudioCtx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.value = freq;
-    g.gain.setValueAtTime(0, teacherAudioCtx.currentTime + delay);
-    g.gain.linearRampToValueAtTime(0.12, teacherAudioCtx.currentTime + delay + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.001, teacherAudioCtx.currentTime + delay + 1.2);
-    osc.start(teacherAudioCtx.currentTime + delay);
-    osc.stop(teacherAudioCtx.currentTime + delay + 1.3);
+// Base open-string frequencies: E2 A2 D3 G3 B3 e4
+const STRING_BASE_FREQS = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63];
+
+function strumChord(frets, capo, ctx, startTime, strumDir, noteDuration) {
+  // frets: array of 6 values (low E to high e). -1 = muted, 0 = open
+  // capo:  number of frets to add to all non-muted strings (default 0)
+  // strumDir: 'D' = low→high, 'U' = high→low (default 'D')
+  capo        = capo        || 0;
+  strumDir    = strumDir    || 'D';
+  noteDuration = noteDuration || 1.6;
+  if (!ctx) {
+    if (!teacherAudioCtx) teacherAudioCtx = new AudioContext();
+    ctx = teacherAudioCtx;
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+  if (!startTime) startTime = ctx.currentTime + 0.02;
+
+  const STRUM_GAP = 0.028;  // 28ms between strings — natural strum speed
+
+  // Build list of active strings in strum order
+  const strings = frets.map((f, i) => ({ stringIdx: i, fret: f }))
+                       .filter(s => s.fret >= 0);
+  if (strumDir === 'U') strings.reverse();
+
+  strings.forEach((s, order) => {
+    const t    = startTime + order * STRUM_GAP;
+    const freq = STRING_BASE_FREQS[s.stringIdx] * Math.pow(2, (s.fret + capo) / 12);
+    // Lower strings slightly quieter (physical reality of picking)
+    const vol  = 0.38 + s.stringIdx * 0.02;
+    pluckString(ctx, freq, t, noteDuration, vol);
   });
+
+  return startTime + strings.length * STRUM_GAP;  // returns time after strum
+}
+
+function playChordSound(frets, capo) {
+  strumChord(frets, capo || 0);
 }
 
 // ══════════════════════════════════════════════════════════════
