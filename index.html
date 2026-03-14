@@ -626,6 +626,16 @@ select.filter-select {
     </div>
     <div class="laz-content" id="learnSetupArea">
       <div class="learn-setup">
+        <!-- MY SONGS banner — shown prominently at top when user has saved songs -->
+        <div id="mySongsBanner" style="display:none;margin-bottom:20px;padding:14px 18px;background:var(--accent-glow);border:1px solid var(--accent);border-radius:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-family:var(--heading);font-size:18px;letter-spacing:2px;color:var(--accent-bright)">⭐ YOU HAVE SAVED SONGS</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px" id="mySongsBannerCount"></div>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="scrollToMySongs()">SEE MY SONGS ↓</button>
+          </div>
+        </div>
         <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent);margin-bottom:8px">SELECT DIFFICULTY</div>
         <div class="difficulty-grid">
           <div class="diff-card selected" onclick="selectDifficulty(0,this)">
@@ -649,7 +659,16 @@ select.filter-select {
             <div class="diff-desc">All 6 strings · Strumming · Fast</div>
           </div>
         </div>
-        <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent);margin:20px 0 8px">SELECT SONG</div>
+        <!-- MY SONGS (from Song Search vault) -->
+        <div id="mySongsSection" style="display:none;margin-bottom:20px">
+          <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent-bright);margin-bottom:8px;display:flex;align-items:center;gap:10px">
+            ⭐ MY SAVED SONGS
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">FROM SONG SEARCH</span>
+          </div>
+          <div class="song-list" id="mySongList"></div>
+          <div style="height:1px;background:var(--border);margin:16px 0"></div>
+        </div>
+        <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent);margin-bottom:8px">BUILT-IN SONGS</div>
         <div class="song-list" id="songList"></div>
         <div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <button class="btn btn-primary" id="startHeroBtn" onclick="startHero()">▶ START</button>
@@ -724,22 +743,30 @@ select.filter-select {
           <div id="bigNoteDisplay" style="text-align:center"></div>
         </div>
 
+        <!-- ACTION PROMPT — big and obvious what to do -->
+        <div id="teacherActionPrompt" style="margin-top:16px;background:var(--bg-panel);border:2px solid var(--accent);border-radius:8px;padding:16px 20px;text-align:center">
+          <div style="font-family:var(--heading);font-size:13px;letter-spacing:3px;color:var(--text-dim);margin-bottom:6px">YOUR MOVE</div>
+          <div style="font-family:var(--heading);font-size:28px;letter-spacing:2px;color:var(--accent-bright)" id="teacherActionText">PLAY THIS NOTE ON YOUR GUITAR</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text-secondary);margin-top:6px" id="teacherActionSub">The mic is listening — play and hold the note</div>
+        </div>
+
         <!-- Current note instruction -->
-        <div id="teacherInstruction" style="margin-top:16px;background:var(--bg-card);border:1px solid var(--accent);border-radius:6px;padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-          <div style="font-size:40px" id="teacherNoteEmoji">🎸</div>
+        <div id="teacherInstruction" style="margin-top:12px;background:var(--bg-card);border:1px solid var(--accent);border-radius:6px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="font-size:36px" id="teacherNoteEmoji">🎸</div>
           <div style="flex:1">
-            <div style="font-family:var(--heading);font-size:22px;letter-spacing:2px;color:var(--accent-bright)" id="teacherNoteLabel">—</div>
+            <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent-bright)" id="teacherNoteLabel">—</div>
             <div style="font-family:var(--mono);font-size:12px;color:var(--text-secondary);margin-top:4px" id="teacherNoteDetail">—</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-            <button class="btn btn-primary" onclick="teacherPlayNote()" title="Hear what this note sounds like">🔊 HEAR IT</button>
+            <button class="btn btn-primary btn-sm" onclick="teacherPlayNote()" title="Hear what this note sounds like">🔊 HEAR NOTE</button>
+            <button class="btn btn-sm" id="teacherPlaySongBtn" onclick="teacherPlaySong()" title="Play the whole song so you can hear how it should sound">▶ PLAY SONG</button>
             <button class="btn btn-sm" onclick="teacherNextNote(true)" title="Skip this note">SKIP ›</button>
           </div>
         </div>
 
-        <!-- Mic feedback -->
-        <div id="teacherMicBar" style="margin-top:12px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <div style="font-size:20px" id="teacherMicIcon">🎤</div>
+        <!-- Mic feedback bar -->
+        <div id="teacherMicBar" style="margin-top:8px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-size:24px" id="teacherMicIcon">🎤</div>
           <div style="flex:1">
             <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px" id="teacherListeningLabel">LISTENING…</div>
             <div style="height:8px;background:var(--border);border-radius:4px;margin-top:6px;overflow:hidden">
@@ -747,7 +774,7 @@ select.filter-select {
             </div>
           </div>
           <div style="text-align:right">
-            <div style="font-family:var(--heading);font-size:28px;color:var(--text-dim)" id="teacherDetectedNote">—</div>
+            <div style="font-family:var(--heading);font-size:32px;color:var(--text-dim);transition:color .2s" id="teacherDetectedNote">—</div>
             <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim)" id="teacherDetectedFreq"></div>
           </div>
         </div>
@@ -1767,11 +1794,98 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 // ══════════════════════════════════════════
 //  SCREENS
 // ══════════════════════════════════════════
-function switchScreen(name, tabEl) {
+// ── App navigation stack ──
+// Every user-initiated nav pushes a state so the back button
+// steps back within the app instead of leaving it.
+let _navStack = [];
+let _handlingPop = false;
+
+function switchScreen(name, tabEl, _fromPop) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
   if (tabEl) tabEl.classList.add('active');
+
+  if (!_fromPop) {
+    // Push state so back button can return here
+    const state = { type: 'screen', name };
+    history.pushState(state, '', location.pathname + location.search);
+    _navStack.push({ type: 'screen', name });
+  }
+}
+
+// Handle browser back button
+window.addEventListener('popstate', e => {
+  if (_handlingPop) return;
+  _handlingPop = true;
+
+  // Determine what "back" means right now
+  const handled = appHandleBack();
+
+  if (!handled) {
+    // Nothing to go back to in-app — push a dummy state so
+    // the user has to press back AGAIN to actually leave
+    history.pushState({ type: 'app-root' }, '', location.pathname + location.search);
+  }
+
+  _handlingPop = false;
+});
+
+function appHandleBack() {
+  // ── 1. Teacher mode active → go back to learn setup ──
+  const teacherStage = document.getElementById('teacherStage');
+  if (teacherStage && teacherStage.style.display !== 'none') {
+    stopTeacher();
+    return true;
+  }
+
+  // ── 2. Hero game active → stop it ──
+  if (heroRunning) {
+    stopHero();
+    return true;
+  }
+
+  // ── 3. Inside a Laz panel (not the hub) → go to hub ──
+  const lazScreen = document.getElementById('screen-laz');
+  const lazHub    = document.getElementById('lazHub');
+  if (lazScreen && lazScreen.classList.contains('active')) {
+    if (lazHub && lazHub.style.display === 'none') {
+      // We're inside a sub-panel — go back to hub
+      stopTuner();
+      stopMetronome();
+      stopPracticeTimer();
+      showLazHub();
+      return true;
+    }
+    // On hub — go back to vault
+    switchScreen('inventory', document.querySelector('[data-screen=inventory]'), true);
+    document.getElementById('detailTab').style.display = 'none';
+    return true;
+  }
+
+  // ── 4. On detail view → go back to vault ──
+  const detailScreen = document.getElementById('screen-detail-screen');
+  if (detailScreen && detailScreen.classList.contains('active')) {
+    switchScreen('inventory', document.querySelector('[data-screen=inventory]'), true);
+    document.getElementById('detailTab').style.display = 'none';
+    return true;
+  }
+
+  // ── 5. On import/export → go to vault ──
+  const ieScreen = document.getElementById('screen-import-export');
+  if (ieScreen && ieScreen.classList.contains('active')) {
+    switchScreen('inventory', document.querySelector('[data-screen=inventory]'), true);
+    return true;
+  }
+
+  // ── 6. On vault (home) → do nothing / swallow the back ──
+  const inventoryScreen = document.getElementById('screen-inventory');
+  if (inventoryScreen && inventoryScreen.classList.contains('active')) {
+    // Already at root — don't leave the app. Re-push so next back also swallowed.
+    return false;
+  }
+
+  return false;
 }
 
 // ══════════════════════════════════════════
@@ -2066,6 +2180,7 @@ function showDetail(id) {
   const detailTab = document.getElementById('detailTab');
   detailTab.style.display = 'block';
   switchScreen('detail-screen', detailTab);
+  history.pushState({ type: 'detail', id }, '', location.pathname + location.search);
   updateDetailNav(id);
   if (!g.ai_description) fetchAIDescription(g);
   if (!g.image_url && !g.image_fetched && getApiKey()) fetchManufacturerImage(g);
@@ -3133,6 +3248,12 @@ function init() {
 }
 
 init();
+
+// Push initial state so we always have something in the history stack
+// This ensures the FIRST back-press triggers our popstate handler
+// rather than immediately navigating away from the page
+history.replaceState({ type: 'app-root' }, '', location.pathname + location.search);
+
 </script>
 
 <script>
@@ -3200,16 +3321,35 @@ function showLazHub() {
 }
 
 function showLazPanel(name) {
+  // Hide hub and ALL other panels first
   document.getElementById('lazHub').style.display = 'none';
+  const LAZ_ALL = ['recorder','tuner','learn','songsearch','metronome','chorddict','setlist','practicetimer'];
+  LAZ_ALL.forEach(p => {
+    const el = document.getElementById('lazPanel' + p.charAt(0).toUpperCase() + p.slice(1));
+    if (el && p !== name) el.style.display = 'none';
+  });
   const cap = name.charAt(0).toUpperCase() + name.slice(1);
   const panel = document.getElementById('lazPanel' + cap);
   if (panel) panel.style.display = 'block';
-  if (name === 'learn') renderSongList();
+  if (name === 'learn') {
+    // Always restore the setup area — it may be hidden from a previous session
+    const setupArea = document.getElementById('learnSetupArea');
+    const learnHdr  = document.getElementById('learnHeader');
+    const teacherSt = document.getElementById('teacherStage');
+    const heroSt    = document.getElementById('heroStage');
+    if (setupArea) setupArea.style.display = 'block';
+    if (learnHdr)  learnHdr.style.display  = 'flex';
+    if (teacherSt) teacherSt.style.display = 'none';
+    if (heroSt)    heroSt.style.display    = 'none';
+    renderSongList();
+  }
   if (name === 'metronome') initMetronomeUI();
   if (name === 'setlist') initSetlist();
   if (name === 'practicetimer') initPracticeTimer();
   if (name === 'chorddict') initChordDict();
   if (name === 'songsearch') initSongSearch();
+  // Push history so back button returns to the hub
+  history.pushState({ type: 'laz-panel', name }, '', location.pathname + location.search);
 }
 
 // Init on load — Laz Mode tab is NEVER shown automatically.
@@ -3675,9 +3815,151 @@ function selectDifficulty(idx, el) {
   renderSongList();
 }
 
+
+// ══════════════════════════════════════════════════════════════
+//  LEARN VAULT — Send Song Search result to Learn to Play
+// ══════════════════════════════════════════════════════════════
+let userLearnSongs = JSON.parse(localStorage.getItem('unplugged_learn_vault') || '[]');
+
+function sendSongToLearn(slug) {
+  const key  = 'unplugged_saved_song_' + slug;
+  let data;
+  try { data = JSON.parse(localStorage.getItem(key)); } catch(_) {}
+  if (!data) { showToast('Song not found', 'error'); return; }
+
+  // Check if already in learn vault
+  if (userLearnSongs.find(s => s.slug === slug)) {
+    showToast(`"${data.title}" is already in your Learn vault`, 'info');
+    showLazPanel('learn');
+    return;
+  }
+
+  // Convert Song Search chords into teacherSong note sequence
+  // Each chord gets a "note" — root note of the chord on the low E or A string
+  const chords = data.chords || [];
+  const notes = [];
+  let time = 0.5;
+
+  // Map common chords to their root string/fret positions
+  const CHORD_ROOT = {
+    'E':  { string:6, fret:0,  freq:82.41,  noteName:'E2',  finger:0 },
+    'Em': { string:6, fret:0,  freq:82.41,  noteName:'E2',  finger:0 },
+    'F':  { string:6, fret:1,  freq:87.31,  noteName:'F2',  finger:1 },
+    'Fm': { string:6, fret:1,  freq:87.31,  noteName:'F2',  finger:1 },
+    'F#': { string:6, fret:2,  freq:92.50,  noteName:'F#2', finger:2 },
+    'G':  { string:6, fret:3,  freq:98.00,  noteName:'G2',  finger:3 },
+    'Gm': { string:6, fret:3,  freq:98.00,  noteName:'G2',  finger:3 },
+    'G#': { string:6, fret:4,  freq:103.83, noteName:'G#2', finger:4 },
+    'Ab': { string:6, fret:4,  freq:103.83, noteName:'Ab2', finger:4 },
+    'A':  { string:5, fret:0,  freq:110.00, noteName:'A2',  finger:0 },
+    'Am': { string:5, fret:0,  freq:110.00, noteName:'A2',  finger:0 },
+    'A#': { string:5, fret:1,  freq:116.54, noteName:'A#2', finger:1 },
+    'Bb': { string:5, fret:1,  freq:116.54, noteName:'Bb2', finger:1 },
+    'B':  { string:5, fret:2,  freq:123.47, noteName:'B2',  finger:2 },
+    'Bm': { string:5, fret:2,  freq:123.47, noteName:'B2',  finger:2 },
+    'C':  { string:5, fret:3,  freq:130.81, noteName:'C3',  finger:3 },
+    'Cm': { string:5, fret:3,  freq:130.81, noteName:'C3',  finger:3 },
+    'C#': { string:5, fret:4,  freq:138.59, noteName:'C#3', finger:4 },
+    'Db': { string:5, fret:4,  freq:138.59, noteName:'Db3', finger:4 },
+    'D':  { string:4, fret:0,  freq:146.83, noteName:'D3',  finger:0 },
+    'Dm': { string:4, fret:0,  freq:146.83, noteName:'D3',  finger:0 },
+  };
+
+  chords.forEach(chord => {
+    // Find root by stripping extensions (maj7, 7, sus4 etc.) then matching
+    const rootKey = Object.keys(CHORD_ROOT).find(k =>
+      chord.name === k ||
+      chord.name.startsWith(k + 'm') ||
+      chord.name.startsWith(k + '7') ||
+      chord.name.startsWith(k + 'maj') ||
+      chord.name.startsWith(k + 'sus') ||
+      chord.name.startsWith(k + 'add')
+    ) || chord.name.replace(/[0-9]|maj|min|sus|add|dim|aug/g,'').trim();
+
+    const root = CHORD_ROOT[rootKey];
+    if (!root) return;
+
+    notes.push({
+      lane: 0,
+      time,
+      dur: 0.6,
+      noteName: root.noteName,
+      freq: root.freq,
+      tab: { string: root.string, fret: root.fret, finger: root.finger },
+      hint: `${chord.name} chord — root note: ${root.string === 6 ? 'Low E' : root.string === 5 ? 'A' : 'D'} string${root.fret === 0 ? ', open' : ', fret ' + root.fret}`
+    });
+    time += 1.0;
+  });
+
+  if (!notes.length) {
+    showToast('Could not convert chords to notes — no recognisable roots', 'error');
+    return;
+  }
+
+  const learnEntry = {
+    slug,
+    name: data.title + (data.artist ? ' — ' + data.artist : ''),
+    bpm: data.bpm || 80,
+    minDiff: 0,
+    notes,
+    fromSearch: true,
+    key: data.key || '',
+    chordProgression: data.chord_progression || '',
+  };
+
+  userLearnSongs.push(learnEntry);
+  localStorage.setItem('unplugged_learn_vault', JSON.stringify(userLearnSongs));
+
+  console.log('[LEARN VAULT] Added:', learnEntry.name, '— total songs:', userLearnSongs.length);
+  showToast(`✓ "${data.title}" added to Learn — ${notes.length} chord steps`, 'success');
+
+  // Navigate to learn panel — make sure Laz is active first
+  const lazTab = document.getElementById('lazTab');
+  if (lazTab) lazTab.classList.add('laz-visible');
+  showLazPanel('learn');
+}
+
+function removeFromLearnVault(slug) {
+  userLearnSongs = userLearnSongs.filter(s => s.slug !== slug);
+  localStorage.setItem('unplugged_learn_vault', JSON.stringify(userLearnSongs));
+  renderSongList();
+}
+
 function renderSongList() {
+  console.log('[RENDER SONG LIST] userLearnSongs:', userLearnSongs.length);
+
+  // ── Top banner ──
+  const banner = document.getElementById('mySongsBanner');
+  const bannerCount = document.getElementById('mySongsBannerCount');
+  if (banner) banner.style.display = userLearnSongs.length ? 'block' : 'none';
+  if (bannerCount) bannerCount.textContent = `${userLearnSongs.length} song${userLearnSongs.length !== 1 ? 's' : ''} ready to learn`;
+
+  // ── User's saved songs from Song Search ──
+  const mySection = document.getElementById('mySongsSection');
+  const myList    = document.getElementById('mySongList');
+  if (mySection && myList) {
+    if (userLearnSongs.length) {
+      mySection.style.display = 'block';
+      myList.innerHTML = userLearnSongs.map((s, i) => `
+        <div class="song-item ${heroSongIdx === 1000+i ? 'selected' : ''}"
+          onclick="selectUserSong(${i},this)"
+          style="border-left:3px solid var(--accent-bright)">
+          <div style="flex:1">
+            <div class="song-item-name">${s.name}</div>
+            <div class="song-item-meta">${s.notes.length} chord roots · BPM ${s.bpm}${s.key ? ' · ' + s.key : ''}</div>
+            ${s.chordProgression ? `<div style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:2px">${s.chordProgression}</div>` : ''}
+          </div>
+          <button onclick="event.stopPropagation();removeFromLearnVault('${s.slug}')"
+            style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:2px;flex-shrink:0" title="Remove">✕</button>
+        </div>`).join('');
+    } else {
+      mySection.style.display = 'none';
+    }
+  }
+
+  // ── Built-in songs ──
   const avail = SONGS.filter(s => s.minDiff <= heroDifficulty);
-  const list = document.getElementById('songList');
+  const list  = document.getElementById('songList');
   list.innerHTML = avail.map((s, i) => `
     <div class="song-item ${heroSongIdx === i ? 'selected' : ''}" onclick="selectSong(${i},this)">
       <div>
@@ -3686,10 +3968,21 @@ function renderSongList() {
       </div>
       <div class="song-item-diff">${DIFFICULTIES[s.minDiff].name}+</div>
     </div>`).join('');
-  if (!list.querySelector('.selected') && avail.length) {
+  if (!list.querySelector('.selected') && avail.length && heroSongIdx < 1000) {
     heroSongIdx = 0;
     list.querySelector('.song-item')?.classList.add('selected');
   }
+}
+
+function selectUserSong(idx, el) {
+  heroSongIdx = 1000 + idx;  // offset to distinguish from built-in songs
+  document.querySelectorAll('.song-item').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function scrollToMySongs() {
+  const el = document.getElementById('mySongsSection');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function selectSong(idx, el) {
@@ -3724,14 +4017,25 @@ let teacherView = 'vertical';
 let teacherAudioCtx = null;
 
 async function startTeacher() {
-  const avail = SONGS.filter(s => s.minDiff <= 0);
-  if (!avail.length) { showToast('No beginner songs found', 'error'); return; }
-  teacherSong = avail[Math.min(heroSongIdx, avail.length - 1)];
+  let avail, songEntry;
+
+  if (heroSongIdx >= 1000) {
+    // User's saved song from learn vault
+    const userIdx = heroSongIdx - 1000;
+    songEntry = userLearnSongs[userIdx];
+    if (!songEntry) { showToast('Song not found in your vault', 'error'); return; }
+    teacherSong = songEntry;
+  } else {
+    avail = SONGS.filter(s => s.minDiff <= 0);
+    if (!avail.length) { showToast('No beginner songs found', 'error'); return; }
+    teacherSong = avail[Math.min(heroSongIdx, avail.length - 1)];
+  }
   teacherNoteIdx = 0;
 
   document.getElementById('learnSetupArea').style.display = 'none';
   document.getElementById('learnHeader').style.display = 'none';
   document.getElementById('teacherStage').style.display = 'block';
+  history.pushState({ type: 'teacher' }, '', location.pathname + location.search);
   document.getElementById('teacherSongTitle').textContent = teacherSong.name;
   document.getElementById('teacherNoteTotal').textContent = teacherSong.notes.length;
 
@@ -3758,6 +4062,7 @@ async function startTeacher() {
 
 function stopTeacher() {
   teacherListening = false;
+  stopTeacherPlayback();  // stop any song playback
   cancelAnimationFrame(teacherAnimFrame);
   if (teacherMicStream) { teacherMicStream.getTracks().forEach(t=>t.stop()); teacherMicStream = null; }
   if (teacherMicCtx) { teacherMicCtx.close().catch(()=>{}); teacherMicCtx = null; }
@@ -3794,7 +4099,19 @@ function renderTeacherNote() {
   document.getElementById('teacherDetectedNote').textContent = '—';
   document.getElementById('teacherDetectedFreq').textContent = '';
   document.getElementById('teacherResult').style.display = 'none';
-  document.getElementById('teacherListeningLabel').textContent = 'LISTENING — play this note…';
+  document.getElementById('teacherListeningLabel').textContent = 'LISTENING — play and hold the note';
+  // Drive the action prompt
+  const ap = document.getElementById('teacherActionText');
+  const apSub = document.getElementById('teacherActionSub');
+  if (ap) ap.textContent = 'PLAY THIS NOTE ON YOUR GUITAR';
+  if (apSub) {
+    const t = note.tab;
+    if (t) {
+      const sName = STRING_NAMES[t.string] || '?';
+      const fStr  = t.fret === 0 ? 'open string' : `fret ${t.fret}`;
+      apSub.textContent = `String ${t.string} (${sName}) · ${fStr}${t.finger ? ' · ' + FINGER_NAMES[t.finger] + ' finger' : ''} — play and hold`;
+    }
+  }
 
   // ── Plain callout (big text string/fret) ──
   if (note.tab) {
@@ -4056,13 +4373,19 @@ function teacherListenLoop() {
   if (centsOff <= 30) {
     document.getElementById('teacherMicIcon').textContent = '✅';
     document.getElementById('teacherListeningLabel').textContent = '✓ NOTE DETECTED!';
+    const apDetected = document.getElementById('teacherActionText');
+    if (apDetected) { apDetected.textContent = '✓ PERFECT! MOVING ON…'; apDetected.style.color = '#4a9a6a'; }
     teacherListening = false; // pause listening briefly
     flashTeacherResult(true, noteNameDetected + octave);
     setTimeout(() => { teacherNextNote(false); }, 900);
   } else {
     const flat = ratio < 1 ? '↓ Too low' : '↑ Too high';
     document.getElementById('teacherMicIcon').textContent = '🎵';
-    document.getElementById('teacherListeningLabel').textContent = centsOff < 80 ? `Getting close… ${flat}` : 'LISTENING — play this note…';
+    document.getElementById('teacherListeningLabel').textContent = centsOff < 80 ? `Getting close… ${flat}` : 'LISTENING — play and hold the note';
+    const ap2 = document.getElementById('teacherActionText');
+    const apSub2 = document.getElementById('teacherActionSub');
+    if (ap2 && centsOff < 80) { ap2.textContent = `ALMOST THERE… ${flat}`; ap2.style.color = 'var(--accent)'; }
+    else if (ap2) { ap2.textContent = 'PLAY THIS NOTE ON YOUR GUITAR'; ap2.style.color = 'var(--accent-bright)'; }
   }
 }
 
@@ -4139,6 +4462,120 @@ function teacherPlayNote() {
 }
 
 // ══════════════════════════════════════════════════════════
+//  PLAY FULL SONG PREVIEW
+// ══════════════════════════════════════════════════════════
+let teacherPlaybackTimer = null;
+let teacherPlaybackRunning = false;
+
+function teacherPlaySong() {
+  if (teacherPlaybackRunning) {
+    stopTeacherPlayback();
+    return;
+  }
+  if (!teacherSong) return;
+
+  if (!teacherAudioCtx) teacherAudioCtx = new AudioContext();
+  if (teacherAudioCtx.state === 'suspended') teacherAudioCtx.resume();
+
+  const notes  = teacherSong.notes;
+  const bpm    = teacherSong.bpm || 80;
+  // Space notes evenly based on BPM — each note = 1 beat
+  const beatMs = (60 / bpm) * 1000;
+
+  teacherPlaybackRunning = true;
+  const btn = document.getElementById('teacherPlaySongBtn');
+  if (btn) { btn.textContent = '⏹ STOP'; btn.classList.add('btn-primary'); }
+
+  // Mute mic while playing so it doesn't accidentally advance
+  const wasListening = teacherListening;
+  teacherListening = false;
+
+  // Schedule all notes using Web Audio API for tight timing
+  const ctx = teacherAudioCtx;
+  const startTime = ctx.currentTime + 0.1;
+
+  notes.forEach((note, i) => {
+    const t = startTime + (i * beatMs / 1000);
+    const noteDur = Math.min(beatMs / 1000 * 0.85, 0.9);
+
+    // Build guitar-like pluck: sawtooth + slight distortion via wave shaping
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.value = note.freq;
+    // Pluck envelope: instant attack, quick decay, hold, release
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.35, t + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.06);
+    gain.gain.setValueAtTime(0.12, t + noteDur * 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + noteDur);
+    osc.start(t);
+    osc.stop(t + noteDur + 0.05);
+
+    // Also schedule a visual highlight at each note's time
+    const delayMs = (i * beatMs);
+    teacherPlaybackTimer = setTimeout(() => {
+      if (!teacherPlaybackRunning) return;
+      highlightPlaybackNote(i);
+    }, delayMs + 100);
+  });
+
+  // Schedule stop after all notes finish
+  const totalMs = notes.length * beatMs + 400;
+  setTimeout(() => {
+    if (teacherPlaybackRunning) {
+      stopTeacherPlayback();
+      // Restore mic
+      if (wasListening && teacherMicAnalyser) {
+        teacherListening = true;
+        teacherListenLoop();
+      }
+    }
+  }, totalMs);
+}
+
+function stopTeacherPlayback() {
+  teacherPlaybackRunning = false;
+  clearTimeout(teacherPlaybackTimer);
+  const btn = document.getElementById('teacherPlaySongBtn');
+  if (btn) { btn.textContent = '▶ PLAY SONG'; btn.classList.remove('btn-primary'); }
+  // Clear all note highlights
+  document.querySelectorAll('.playback-highlight').forEach(el => {
+    el.classList.remove('playback-highlight');
+  });
+  // Restore listening if teacher mode is still active
+  if (teacherSong && teacherMicAnalyser && !teacherListening) {
+    teacherListening = true;
+    teacherListenLoop();
+  }
+}
+
+function highlightPlaybackNote(idx) {
+  // Briefly show which note is playing by flashing the result area
+  const result = document.getElementById('teacherResult');
+  const label  = document.getElementById('teacherNoteLabel');
+  if (!teacherSong || idx >= teacherSong.notes.length) return;
+  const note = teacherSong.notes[idx];
+
+  // Flash the note name
+  if (result) {
+    result.style.display = 'block';
+    result.style.background = 'rgba(200,132,90,0.15)';
+    result.style.border = '1px solid var(--accent)';
+    result.style.color = 'var(--accent-bright)';
+    result.style.fontSize = '18px';
+    result.style.letterSpacing = '1px';
+    result.textContent = `♪  ${note.noteName}  —  ${note.hint || tabToString(note.tab)}`;
+    setTimeout(() => {
+      if (teacherPlaybackRunning) return; // keep showing during playback
+      if (result) result.style.display = 'none';
+    }, 800);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 //  HERO GAME MODE (easy/medium/hard)
 // ══════════════════════════════════════════════════════════
 async function startHeroGame() {
@@ -4189,6 +4626,7 @@ async function startHeroGame() {
   document.getElementById('learnHeader').style.display = 'none';
   const stage = document.getElementById('heroStage');
   stage.style.display = 'flex';
+  history.pushState({ type: 'hero-game' }, '', location.pathname + location.search);
 
   try {
     heroMicStream = await navigator.mediaDevices.getUserMedia({
@@ -4328,15 +4766,19 @@ function renderSavedSongsList() {
   if (!saved.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = `
     <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">SAVED SONGS</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">
-      ${saved.map(s => `
-        <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:8px 12px;cursor:pointer"
-          onclick="loadSavedSong('${(s.title||'').toLowerCase().replace(/[^a-z0-9]/g,'_')}')">
-          <span style="font-family:var(--heading);font-size:14px;letter-spacing:1px;color:var(--text-primary)">${s.title}</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">${s.artist||''}</span>
-          <button onclick="event.stopPropagation();deleteSavedSong('${(s.title||'').toLowerCase().replace(/[^a-z0-9]/g,'_')}')"
-            style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:0 0 0 4px">✕</button>
-        </div>`).join('')}
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${saved.map(s => {
+        const slug = (s.title||'').toLowerCase().replace(/[^a-z0-9]/g,'_');
+        return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:10px 14px;flex-wrap:wrap">
+          <div style="flex:1;cursor:pointer;min-width:120px" onclick="loadSavedSong('${slug}')">
+            <div style="font-family:var(--heading);font-size:16px;letter-spacing:1px;color:var(--text-primary)">${s.title}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">${s.artist||''} ${s.key ? '· Key: '+s.key : ''} ${s.bpm ? '· '+s.bpm+' BPM' : ''}</div>
+          </div>
+          <button class="btn btn-sm btn-primary" onclick="sendSongToLearn('${slug}')" title="Add to Learn to Play">🎸 LEARN</button>
+          <button onclick="deleteSavedSong('${slug}')"
+            style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:4px 6px;border-radius:2px" title="Remove">✕</button>
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -4419,7 +4861,7 @@ Return ONLY a valid JSON object with these exact fields (no markdown, no explana
   ],
   "strum_note": "e.g. 'Mute on beat 2-and for a choppy feel'",
   "intro_tab": "e-|---0---2---3---|\\nB-|---0---3---3---|\\nG-|---0---2---0---|",
-  "lyrics_with_chords": "[Em]Verse line one words here[G]\\n[D]Verse line two words here[A]",
+  "lyrics_with_chords": "[Em]Full verse 1 line 1[G]\\n[D]Full verse 1 line 2[A]\\n\\n[Em]Chorus line 1[G]\\n[D]Chorus line 2[A]",
   "notes": "Any useful playing tips in 1-2 sentences"
 }
 
@@ -4428,7 +4870,7 @@ Rules:
 - fingers array: 0=open/mute, 1=index, 2=middle, 3=ring, 4=pinky
 - barre: fret number if it's a barre chord, else null
 - strum dir: D=down, U=up, X=mute/chuck, R=rest
-- For lyrics_with_chords: put [CHORD] inline before syllables. Use \\n (the two characters backslash-n) for line breaks — NOT a real newline character
+- For lyrics_with_chords: include the FULL song lyrics (all verses, chorus, bridge) with chord markers. Label sections like "\\n[VERSE 1]\\n" and "\\n[CHORUS]\\n". Use \\n for line breaks within sections. Do not truncate — include every lyric line.
 - For intro_tab: use \\n (backslash-n) between string lines — NOT real newlines
 - CRITICAL: The entire response must be valid JSON on a single conceptual line. Never put a raw line break inside a string value. Always use \\n as the escape sequence for newlines within strings.
 - If song is unknown, do your best approximation`;
@@ -4546,6 +4988,7 @@ function renderSongResult(data) {
         ${alreadySaved ? '✓ SAVED' : '＋ SAVE TO VAULT'}
       </button>
       <button class="btn btn-sm" onclick="exportSongText()" title="Export as text file">📄 EXPORT</button>
+      <button class="btn btn-sm" onclick="refreshSongSearch()" title="Re-fetch with full lyrics">↺ REFRESH</button>
     </div>
   `;
 
@@ -4686,6 +5129,18 @@ function strumPlayAlong() {
     }
     strumBeatIdx++;
   }, msPerSubdiv);
+}
+
+function refreshSongSearch() {
+  if (!currentSongData) return;
+  const raw = document.getElementById('songSearchInput').value.trim();
+  if (!raw) return;
+  // Clear cache for this song so it re-fetches with full lyrics
+  const cacheKey = raw.toLowerCase();
+  delete songSearchCache[cacheKey];
+  localStorage.setItem('unplugged_song_cache', JSON.stringify(songSearchCache));
+  showToast('Cache cleared — re-fetching with full lyrics…', 'info');
+  searchSong();
 }
 
 function showSongTab(name, el) {
