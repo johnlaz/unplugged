@@ -4893,49 +4893,79 @@ Rules:
     // 3. Replace literal tabs with \t
     // 4. Strip control characters (0x00-0x1F except escaped ones)
     function sanitiseJson(raw) {
-      // Remove markdown fences
+      // Strip markdown fences
       let s = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
-      // Find the outermost { ... } block
+      // Extract outermost { ... } block
       const start = s.indexOf('{');
       const end   = s.lastIndexOf('}');
       if (start === -1 || end === -1) throw new Error('No JSON object found in response');
       s = s.slice(start, end + 1);
 
-      // Replace bare control characters that appear inside string values.
-      // Strategy: walk char by char tracking whether we're inside a string,
-      // and replace bare \n/\r/\t with their JSON escape equivalents.
-      let result = '';
+      // Walk the string character-by-character.
+      // Inside JSON string values we fix:
+      //   1. Bare newline/tab/CR  → proper \n \t \r escapes
+      //   2. Bad escape sequences → double the backslash (\x → \\x)
+      //      Valid JSON escapes: \" \\  \/ \b \f \n \r \t \uXXXX
+      //      Everything else is illegal and must be escaped
+      // Outside strings we pass through unchanged.
+
+      const VALID_AFTER_BACKSLASH = new Set(['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']);
+      let result   = '';
       let inString = false;
-      let escaped  = false;
-      for (let i = 0; i < s.length; i++) {
+      let i = 0;
+
+      while (i < s.length) {
         const ch = s[i];
-        if (escaped) {
-          result += ch;
-          escaped = false;
+
+        if (!inString) {
+          // Not inside a string — pass structural chars through as-is
+          if (ch === '"') { inString = true; result += ch; i++; continue; }
+          result += ch; i++;
           continue;
         }
-        if (ch === '\\') {
-          result += ch;
-          escaped = true;
-          continue;
-        }
+
+        // Inside a string
         if (ch === '"') {
-          inString = !inString;
-          result += ch;
+          // End of string
+          inString = false; result += ch; i++; continue;
+        }
+
+        if (ch === '\\') {
+          // Backslash — look at next char to decide if escape is valid
+          const next = s[i + 1];
+          if (!next) { result += '\\\\'; i++; continue; }
+
+          if (VALID_AFTER_BACKSLASH.has(next)) {
+            // Valid escape sequence — pass both chars through
+            if (next === 'u') {
+              // Unicode: needs exactly 4 hex digits after \u
+              const hex = s.slice(i + 2, i + 6);
+              if (/^[0-9a-fA-F]{4}$/.test(hex)) {
+                result += '\\u' + hex; i += 6; continue;
+              }
+              // Bad \u — escape the backslash
+              result += '\\\\'; i++; continue;
+            }
+            result += ch + next; i += 2; continue;
+          }
+
+          // Invalid escape (e.g. \m \( \- \s etc.)
+          // Replace the single backslash with \\ so the char is kept literally
+          result += '\\\\'; i++;
           continue;
         }
-        if (inString) {
-          // Replace bare control chars with safe escapes
-          if (ch === '\n') { result += '\\n'; continue; }
-          if (ch === '\r') { result += '\\r'; continue; }
-          if (ch === '\t') { result += '\\t'; continue; }
-          // Strip other bare control characters
-          const code = ch.charCodeAt(0);
-          if (code < 0x20) continue;
-        }
-        result += ch;
+
+        // Bare control characters inside a string
+        if (ch === '\n') { result += '\\n'; i++; continue; }
+        if (ch === '\r') { result += '\\r'; i++; continue; }
+        if (ch === '\t') { result += '\\t'; i++; continue; }
+        const code = ch.charCodeAt(0);
+        if (code < 0x20) { i++; continue; } // strip other control chars
+
+        result += ch; i++;
       }
+
       return result;
     }
 
