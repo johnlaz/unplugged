@@ -3822,7 +3822,9 @@ function selectDifficulty(idx, el) {
 let userLearnSongs = JSON.parse(localStorage.getItem('unplugged_learn_vault') || '[]');
 
 function sendSongToLearn(slug) {
-  const key  = 'unplugged_saved_song_' + slug;
+  const normSlug = songSlug(slug.replace(/_/g,' ')) || slug;
+  const key  = 'unplugged_saved_song_' + normSlug;
+  console.log('[SEND TO LEARN] looking up key:', key);
   let data;
   try { data = JSON.parse(localStorage.getItem(key)); } catch(_) {}
   if (!data) { showToast('Song not found', 'error'); return; }
@@ -4751,6 +4753,11 @@ function runCountIn() {
 //  SONG SEARCH
 // ══════════════════════════════════════════════════════════════
 let songSearchCache = JSON.parse(localStorage.getItem('unplugged_song_cache') || '{}');
+
+// ── Shared slug: used for all song save/load keys ──
+function songSlug(title) {
+  return (title || '').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+}
 let songSearchHistory = JSON.parse(localStorage.getItem('unplugged_song_history') || '[]');
 let currentSongData = null;
 
@@ -4768,7 +4775,7 @@ function renderSavedSongsList() {
     <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">SAVED SONGS</div>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${saved.map(s => {
-        const slug = (s.title||'').toLowerCase().replace(/[^a-z0-9]/g,'_');
+        const slug = songSlug(s.title);
         return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:10px 14px;flex-wrap:wrap">
           <div style="flex:1;cursor:pointer;min-width:120px" onclick="loadSavedSong('${slug}')">
             <div style="font-family:var(--heading);font-size:16px;letter-spacing:1px;color:var(--text-primary)">${s.title}</div>
@@ -4782,7 +4789,8 @@ function renderSavedSongsList() {
     </div>`;
 }
 
-function loadSavedSong(slug) {
+function loadSavedSong(rawSlug) {
+  const slug = songSlug(rawSlug.replace(/_/g,' ')) || rawSlug; // normalise
   const key = 'unplugged_saved_song_' + slug;
   try {
     const data = JSON.parse(localStorage.getItem(key));
@@ -4796,7 +4804,8 @@ function loadSavedSong(slug) {
   } catch(_) {}
 }
 
-function deleteSavedSong(slug) {
+function deleteSavedSong(rawSlug) {
+  const slug = songSlug(rawSlug.replace(/_/g,' ')) || rawSlug;
   localStorage.removeItem('unplugged_saved_song_' + slug);
   renderSavedSongsList();
   showToast('Song removed from vault', 'info');
@@ -4970,8 +4979,8 @@ function renderSongResult(data) {
     data.difficulty  && `<span class="song-meta-pill">${data.difficulty}</span>`,
   ].filter(Boolean).join('');
   // Check if already saved
-  const savedKey = `song_${(data.title||'').toLowerCase().replace(/\s+/g,'_')}`;
-  const alreadySaved = !!localStorage.getItem('unplugged_saved_' + savedKey);
+  const savedKey = songSlug(data.title);
+  const alreadySaved = !!localStorage.getItem('unplugged_saved_song_' + savedKey);
 
   document.getElementById('songMetaBar').innerHTML = `
     <div style="flex:1;min-width:0">
@@ -4989,6 +4998,7 @@ function renderSongResult(data) {
       </button>
       <button class="btn btn-sm" onclick="exportSongText()" title="Export as text file">📄 EXPORT</button>
       <button class="btn btn-sm" onclick="refreshSongSearch()" title="Re-fetch with full lyrics">↺ REFRESH</button>
+      <button class="btn btn-sm" style="border-color:var(--accent-bright);color:var(--accent-bright)" onclick="quickSendToLearn()" title="Save and send to Learn to Play">🎸 LEARN IT</button>
     </div>
   `;
 
@@ -5131,6 +5141,18 @@ function strumPlayAlong() {
   }, msPerSubdiv);
 }
 
+function quickSendToLearn() {
+  if (!currentSongData) return;
+  // Save first if not already saved
+  const slug = songSlug(currentSongData.title);
+  const existing = localStorage.getItem('unplugged_saved_song_' + slug);
+  if (!existing) {
+    saveSongToVault();
+  }
+  // Then send to learn
+  sendSongToLearn(slug);
+}
+
 function refreshSongSearch() {
   if (!currentSongData) return;
   const raw = document.getElementById('songSearchInput').value.trim();
@@ -5154,8 +5176,9 @@ function showSongTab(name, el) {
 // ── Save current song result to personal vault ──
 function saveSongToVault() {
   if (!currentSongData) return;
-  const key = `song_${(currentSongData.title||'').toLowerCase().replace(/\s+/g,'_')}`;
-  localStorage.setItem('unplugged_saved_' + key, JSON.stringify(currentSongData));
+  const slug = songSlug(currentSongData.title);
+  localStorage.setItem('unplugged_saved_song_' + slug, JSON.stringify(currentSongData));
+  console.log('[SAVE SONG] Key:', 'unplugged_saved_song_' + slug);
 
   // Update button state
   const btn = document.getElementById('saveSongBtn');
