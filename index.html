@@ -808,8 +808,45 @@ select.filter-select {
       <div class="hero-progress"><div class="hero-progress-bar" id="heroProgressBar" style="width:0%"></div></div>
       <div class="hero-lanes" id="heroLanes"></div>
       <div class="hero-feedback" id="heroFeedback"></div>
+
+      <!-- End of song results overlay -->
+      <div id="heroResults" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.88);z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+        <div style="font-family:var(--heading);font-size:13px;letter-spacing:4px;color:var(--text-dim)">SONG COMPLETE</div>
+        <div style="font-family:var(--heading);font-size:56px;letter-spacing:4px;color:var(--accent)" id="heroResultScore">0</div>
+        <div style="display:flex;gap:24px;text-align:center">
+          <div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">ACCURACY</div>
+            <div style="font-family:var(--heading);font-size:28px;color:var(--accent-bright)" id="heroResultAcc">—</div>
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">BEST STREAK</div>
+            <div style="font-family:var(--heading);font-size:28px;color:var(--accent-bright)" id="heroResultStreak">0</div>
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">HITS</div>
+            <div style="font-family:var(--heading);font-size:28px;color:var(--green)" id="heroResultHits">0</div>
+          </div>
+          <div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">MISSES</div>
+            <div style="font-family:var(--heading);font-size:28px;color:var(--red)" id="heroResultMisses">0</div>
+          </div>
+        </div>
+        <div id="heroResultGrade" style="font-family:var(--heading);font-size:40px;letter-spacing:4px"></div>
+        <div style="display:flex;gap:12px;margin-top:8px">
+          <button class="btn btn-primary" onclick="retryHero()" style="font-size:16px;padding:12px 28px">↺ PLAY AGAIN</button>
+          <button class="btn" onclick="stopHero()" style="font-size:16px;padding:12px 28px">← BACK</button>
+        </div>
+      </div>
+
       <div class="hero-controls">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px">SPEED</span>
+          <input type="range" id="heroSpeedSlider" min="25" max="150" value="100" step="5"
+            style="width:70px;accent-color:var(--accent)" oninput="heroSetSpeed(this.value)">
+          <span id="heroSpeedLabel" style="font-family:var(--mono);font-size:10px;color:var(--accent);width:34px">100%</span>
+        </div>
         <button onclick="pauseHero()" id="heroPauseBtn">⏸ PAUSE</button>
+        <button onclick="retryHero()" style="border-color:var(--accent);color:var(--accent)">↺ RETRY</button>
         <button onclick="stopHero()">✕ QUIT</button>
       </div>
     </div>
@@ -4720,32 +4757,46 @@ async function startHeroGame() {
   const hitZone = document.createElement('div');
   hitZone.className = 'hero-hit-zone';
 
+  // Lane labels: use the actual notes from the song for this difficulty
+  // Build a map of lane → most common note name in this song
+  const laneNoteNames = {};
+  heroNotes.forEach(n => {
+    if (!laneNoteNames[n.lane]) laneNoteNames[n.lane] = n.noteName;
+  });
+
   for (let i = 0; i < laneCount; i++) {
     const lane = document.createElement('div');
     lane.className = 'hero-lane';
     lane.id = `heroLane${i}`;
     const label = document.createElement('div');
     label.className = 'hero-lane-label';
-    label.textContent = LANE_NAMES_6[i];
+    // Show the note name for this lane from the actual song
+    label.textContent = laneNoteNames[i] || LANE_NAMES_6[i];
     lane.appendChild(label);
     laneDiv.appendChild(lane);
 
     const target = document.createElement('div');
     target.className = 'hero-target';
     target.id = `heroTarget${i}`;
-    target.textContent = LANE_NAMES_6[i];
+    target.textContent = laneNoteNames[i] || LANE_NAMES_6[i];
     target.style.color = LANE_COLORS[i];
     target.style.borderColor = LANE_COLORS[i];
     hitZone.appendChild(target);
   }
-  laneDiv.appendChild(hitZone);
+  // Build notes FIRST so we can derive lane labels from actual note names
+  _heroCurrentSong = song;  // store for retry
 
   heroNotes = song.notes
     .filter(n => n.lane < laneCount)
     .map(n => ({ ...n, hit: false, missed: false, el: null }));
 
+  laneDiv.appendChild(hitZone);
+
   heroScore = 0; heroStreak = 0; heroHits = 0; heroMisses = 0;
-  heroElapsed = 0; heroLastTime = null;
+  heroElapsed = 0; heroLastTime = null; heroDetectedFreq = 0;
+  // Reset speed to current slider value
+  const speedSlider = document.getElementById('heroSpeedSlider');
+  if (speedSlider) { heroSpeedMult = parseInt(speedSlider.value) / 100; }
   document.getElementById('heroScore').textContent = '0';
   document.getElementById('heroStreak').textContent = 'STREAK: 0';
   document.getElementById('heroAccuracy').textContent = '—';
@@ -4780,6 +4831,225 @@ async function startHeroGame() {
   document.getElementById('heroProgressBar').dataset.total = songDuration;
 }
 
+
+// ─────────────────────────────────────────────────
+//  HERO GAME LOOP — animates notes falling down
+// ─────────────────────────────────────────────────
+// Notes fall from top to bottom at SCROLL_SPEED px/sec.
+// The hit zone is at the bottom. Each note has a .time
+// (seconds into song) that determines when it reaches
+// the hit zone. We use heroElapsed to track game time.
+
+const HIT_WINDOW_MS = 200;   // ±ms tolerance for a hit
+const MISS_WINDOW   = 0.30;  // seconds past hit zone = miss
+
+// Speed multiplier — 1.0 = normal, 0.5 = half speed, 1.5 = fast
+let heroSpeedMult = 1.0;
+
+// Seconds of track visible on screen at 1x speed
+// Higher = more lead time (notes appear further ahead)
+const BASE_LOOK_AHEAD = 4.0;
+
+function heroSetSpeed(v) {
+  heroSpeedMult = parseInt(v) / 100;
+  document.getElementById('heroSpeedLabel').textContent = v + '%';
+}
+
+function retryHero() {
+  // Hide results overlay and restart same song
+  document.getElementById('heroResults').style.display = 'none';
+  heroRunning = false;
+  cancelAnimationFrame(heroAnimFrame);
+  // Clean up any existing note elements
+  document.querySelectorAll('.hero-note').forEach(el => el.remove());
+  // Restart (reuse mic if already granted)
+  const keepMic = !!(heroMicStream);
+  if (keepMic) {
+    // Mic already open — just restart game state
+    _startHeroGameWithMic();
+  } else {
+    startHeroGame();
+  }
+}
+
+// Stores current song ref for retry
+let _heroCurrentSong = null;
+
+function _startHeroGameWithMic() {
+  const song = _heroCurrentSong;
+  if (!song) { startHeroGame(); return; }
+
+  const diff = DIFFICULTIES[heroDifficulty];
+  const laneCount = diff.lanes;
+
+  const laneDiv = document.getElementById('heroLanes');
+  laneDiv.innerHTML = '';
+  const hitZone = document.createElement('div');
+  hitZone.className = 'hero-hit-zone';
+
+  heroNotes = song.notes
+    .filter(n => n.lane < laneCount)
+    .map(n => ({ ...n, hit: false, missed: false, el: null }));
+
+  const laneNoteNames = {};
+  heroNotes.forEach(n => { if (!laneNoteNames[n.lane]) laneNoteNames[n.lane] = n.noteName; });
+
+  for (let i = 0; i < laneCount; i++) {
+    const lane = document.createElement('div');
+    lane.className = 'hero-lane'; lane.id = `heroLane${i}`;
+    const label = document.createElement('div');
+    label.className = 'hero-lane-label';
+    label.textContent = laneNoteNames[i] || LANE_NAMES_6[i];
+    lane.appendChild(label);
+    laneDiv.appendChild(lane);
+    const target = document.createElement('div');
+    target.className = 'hero-target'; target.id = `heroTarget${i}`;
+    target.textContent = laneNoteNames[i] || LANE_NAMES_6[i];
+    target.style.color = LANE_COLORS[i];
+    target.style.borderColor = LANE_COLORS[i];
+    hitZone.appendChild(target);
+  }
+  laneDiv.appendChild(hitZone);
+
+  heroScore = 0; heroStreak = 0; heroHits = 0; heroMisses = 0;
+  heroElapsed = 0; heroLastTime = null; heroDetectedFreq = 0;
+  // Reset speed to current slider value
+  const speedSlider = document.getElementById('heroSpeedSlider');
+  if (speedSlider) { heroSpeedMult = parseInt(speedSlider.value) / 100; } heroDetectedFreq = 0;
+  document.getElementById('heroScore').textContent = '0';
+  document.getElementById('heroStreak').textContent = 'STREAK: 0';
+  document.getElementById('heroAccuracy').textContent = '—';
+  document.getElementById('heroProgressBar').style.width = '0%';
+  document.getElementById('heroPauseBtn').textContent = '⏸ PAUSE';
+
+  const songDuration = Math.max(...song.notes.map(n => n.time + n.dur)) + 1.5;
+  document.getElementById('heroProgressBar').dataset.total = songDuration;
+
+  heroRunning = true; heroPaused = false;
+  heroAnimFrame = requestAnimationFrame(heroLoop);
+}
+
+function heroLoop(timestamp) {
+  if (!heroRunning) return;
+  if (heroPaused) { heroAnimFrame = requestAnimationFrame(heroLoop); return; }
+
+  if (!heroLastTime) heroLastTime = timestamp;
+  const dt = (timestamp - heroLastTime) / 1000;
+  heroLastTime = timestamp;
+  heroElapsed += dt;
+
+  const laneDiv  = document.getElementById('heroLanes');
+  if (!laneDiv) { heroAnimFrame = requestAnimationFrame(heroLoop); return; }
+  const stageH   = laneDiv.clientHeight || 600;
+  const hitZoneY = stageH - 80;  // px from top where hit zone sits
+
+  const totalDur = parseFloat(
+    document.getElementById('heroProgressBar').dataset.total || '10');
+
+  document.getElementById('heroProgressBar').style.width =
+    Math.min(100, (heroElapsed / totalDur) * 100) + '%';
+
+  // Mic pitch detection
+  if (heroMicAnalyser && heroMicCtx) {
+    const buf = new Float32Array(heroMicAnalyser.fftSize);
+    heroMicAnalyser.getFloatTimeDomainData(buf);
+    const rms = Math.sqrt(buf.reduce((a,b) => a+b*b, 0) / buf.length);
+    if (rms > 0.008) {
+      const freq = autocorrelate(buf, heroMicCtx.sampleRate);
+      if (freq) heroDetectedFreq = freq;
+    } else {
+      heroDetectedFreq = 0;
+    }
+  }
+
+  heroNotes.forEach(note => {
+    // timeToHit: positive = note hasn't reached hit zone yet
+    //            zero     = note is exactly at hit zone
+    //            negative = note has passed hit zone
+    const timeToHit = note.time - heroElapsed;
+
+    // noteY: 0 = top of lane area, hitZoneY = hit zone
+    // When timeToHit = LOOK_AHEAD_SECS  →  noteY = 0   (entering from top)
+    // When timeToHit = 0               →  noteY = hitZoneY (at hit zone)
+    const lookAhead = BASE_LOOK_AHEAD / heroSpeedMult;  // faster = shorter look-ahead
+    const noteY = hitZoneY * (1 - timeToHit / lookAhead);
+
+    const laneEl = document.getElementById('heroLane' + note.lane);
+    if (!laneEl) return;
+
+    // Spawn when note enters visible area from the top
+    if (!note.el && !note.hit && !note.missed && noteY > -40 && noteY < hitZoneY + 50) {
+      const el = document.createElement('div');
+      el.className = 'hero-note';
+      el.style.background  = LANE_COLORS[note.lane % LANE_COLORS.length];
+      el.style.boxShadow   = `0 0 12px ${LANE_COLORS[note.lane % LANE_COLORS.length]}aa`;
+      el.style.width       = '70%';
+      el.style.left        = '15%';
+      el.style.transform   = 'none';
+      laneEl.appendChild(el);
+      note.el = el;
+    }
+
+    // Animate position
+    if (note.el && !note.hit && !note.missed) {
+      note.el.style.top = Math.round(noteY) + 'px';
+    }
+
+    // Miss: note passed hit zone without being hit
+    if (!note.hit && !note.missed && timeToHit < -MISS_WINDOW) {
+      note.missed = true;
+      heroMisses++;
+      heroStreak = 0;
+      document.getElementById('heroStreak').textContent = 'STREAK: 0';
+      showHeroFeedback('MISS', '#c0392b');
+      updateHeroAccuracy();
+      if (note.el) {
+        note.el.style.opacity = '0.15';
+        setTimeout(() => { note.el && note.el.remove(); }, 350);
+      }
+    }
+
+    // Hit detection: mic pitch matches within time window
+    if (!note.hit && !note.missed && heroDetectedFreq &&
+        timeToHit > -(HIT_WINDOW_MS/1000) && timeToHit < (HIT_WINDOW_MS/1000)) {
+      const ratio    = heroDetectedFreq / note.freq;
+      const octRatio = ratio / Math.pow(2, Math.round(Math.log2(ratio)));
+      const centsOff = Math.abs(Math.round(1200 * Math.log2(octRatio)));
+      if (centsOff <= 40) {
+        note.hit = true;
+        heroHits++;
+        const bonus = Math.max(100, 300 - centsOff * 3);
+        heroScore += bonus * (1 + Math.floor(heroStreak / 5));
+        heroStreak++;
+        document.getElementById('heroScore').textContent  = heroScore.toLocaleString();
+        document.getElementById('heroStreak').textContent = 'STREAK: ' + heroStreak;
+        showHeroFeedback(centsOff < 12 ? 'PERFECT!' : 'GOOD', '#4a9a6a');
+        updateHeroAccuracy();
+        const target = document.getElementById('heroTarget' + note.lane);
+        if (target) { target.classList.add('lit'); setTimeout(() => target.classList.remove('lit'), 180); }
+        if (note.el) {
+          note.el.style.background = '#4a9a6a';
+          note.el.style.opacity    = '0';
+          note.el.style.transition = 'all 0.15s';
+          setTimeout(() => { note.el && note.el.remove(); }, 200);
+        }
+        heroDetectedFreq = 0;
+      }
+    }
+  });
+
+  if (heroElapsed > totalDur + 1.5) { showHeroResults(); return; }
+  heroAnimFrame = requestAnimationFrame(heroLoop);
+}
+
+
+function updateHeroAccuracy() {
+  const total = heroHits + heroMisses;
+  if (!total) return;
+  document.getElementById('heroAccuracy').textContent =
+    Math.round(heroHits / total * 100) + '%';
+}
+
 let heroFeedbackTimeout = null;
 function showHeroFeedback(text, color) {
   const el = document.getElementById('heroFeedback');
@@ -4796,19 +5066,45 @@ function pauseHero() {
   heroLastTime = null;
 }
 
-function stopHero(finished = false) {
+function stopHero(fromResults = false) {
   heroRunning = false;
   cancelAnimationFrame(heroAnimFrame);
+
+  // If called from results overlay's BACK button, fully exit
+  // If called from QUIT button mid-game, fully exit
+  // Either way: close mic and return to setup
   if (heroMicStream) { heroMicStream.getTracks().forEach(t=>t.stop()); heroMicStream = null; }
-  if (heroMicCtx) { heroMicCtx.close().catch(()=>{}); heroMicCtx = null; }
-  document.getElementById('heroStage').style.display = 'none';
+  if (heroMicCtx)    { heroMicCtx.close().catch(()=>{}); heroMicCtx = null; }
+  heroMicAnalyser = null;
+
+  document.getElementById('heroResults').style.display = 'none';
+  document.getElementById('heroStage').style.display   = 'none';
   document.getElementById('learnSetupArea').style.display = 'block';
-  document.getElementById('learnHeader').style.display = 'flex';
-  if (finished && (heroHits + heroMisses) > 0) {
-    const acc = Math.round(heroHits/(heroHits+heroMisses)*100);
-    showToast(`Song complete! Score: ${heroScore.toLocaleString()} · Accuracy: ${acc}%`, 'success');
-  }
+  document.getElementById('learnHeader').style.display   = 'flex';
   renderSongList();
+}
+
+function showHeroResults() {
+  // Show the results overlay — user can retry or go back
+  heroRunning = false;
+  cancelAnimationFrame(heroAnimFrame);
+
+  const total  = heroHits + heroMisses;
+  const acc    = total > 0 ? Math.round(heroHits / total * 100) : 0;
+  const grade  = acc >= 95 ? '🌟 S' : acc >= 80 ? '🥇 A' : acc >= 65 ? '🥈 B' : acc >= 50 ? '🥉 C' : '💀 F';
+
+  document.getElementById('heroResultScore').textContent  = heroScore.toLocaleString();
+  document.getElementById('heroResultAcc').textContent    = acc + '%';
+  document.getElementById('heroResultStreak').textContent = heroStreak;
+  document.getElementById('heroResultHits').textContent   = heroHits;
+  document.getElementById('heroResultMisses').textContent = heroMisses;
+  document.getElementById('heroResultGrade').textContent  = grade;
+
+  // Grade color
+  const gradeEl = document.getElementById('heroResultGrade');
+  gradeEl.style.color = acc >= 80 ? 'var(--accent-bright)' : acc >= 50 ? 'var(--accent)' : 'var(--red)';
+
+  document.getElementById('heroResults').style.display = 'flex';
 }
 
 
@@ -5168,7 +5464,16 @@ function renderSongResult(data) {
   document.getElementById('songPaneChords').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
       ${data.chord_progression ? `<div style="font-family:var(--mono);font-size:13px;color:var(--accent);padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;flex:1">PROGRESSION: ${data.chord_progression}</div>` : '<div></div>'}
-      <button class="btn btn-sm btn-primary" id="chordsPlayBtn" onclick="chordsPlayThrough()" title="Play through all chords at song tempo with strum pattern">🎸 PLAY THROUGH</button>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-primary" id="chordsPlayBtn" onclick="chordsPlayThrough()" title="Play through all chords at song tempo with strum pattern">🎸 PLAY THROUGH</button>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px">SPEED</span>
+          <input type="range" id="strumSpeedSlider" min="25" max="150" value="75"
+            style="width:70px;accent-color:var(--accent)"
+            oninput="document.getElementById('strumSpeedLabel').textContent=this.value+'%'">
+          <span id="strumSpeedLabel" style="font-family:var(--mono);font-size:10px;color:var(--accent);width:32px">75%</span>
+        </div>
+      </div>
     </div>
     <div class="chord-grid">${(data.chords||[]).map(c => renderChordBox(c, capoVal)).join('')}</div>`;
 
@@ -5266,9 +5571,16 @@ function renderStrumPattern(data) {
     </div>
     ${data.strum_note ? `<div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:10px;padding:8px 12px;background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:4px">💡 ${data.strum_note}</div>` : ''}
     <div style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">PLAY ALONG</div>
-    <div style="display:flex;gap:10px;align-items:center">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-sm btn-primary" onclick="strumPlayAlong()" id="strumPlayBtn">🎸 PLAY THROUGH</button>
-      <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${data.bpm || 120} BPM — click to hear the rhythm</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">SPEED</span>
+        <input type="range" id="strumSpeedSlider" min="25" max="150" value="75"
+          style="width:80px;accent-color:var(--accent)"
+          oninput="document.getElementById('strumSpeedLabel').textContent=this.value+'%'">
+        <span id="strumSpeedLabel" style="font-family:var(--mono);font-size:10px;color:var(--accent);width:36px">75%</span>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">Song BPM: ${data.bpm || 120}</span>
     </div>`;
 }
 
@@ -5281,26 +5593,31 @@ function strumPlayAlong() {
   if (strumPlayInterval) {
     clearInterval(strumPlayInterval);
     strumPlayInterval = null;
-    if (btn) btn.textContent = '▶ PLAY AT BPM';
+    if (btn) btn.textContent = '🎸 PLAY THROUGH';
+    // Clear highlights
+    document.querySelectorAll('.strum-beat').forEach(el => { el.style.background=''; el.style.color=''; el.style.transform=''; });
+    document.querySelectorAll('.chord-box').forEach(el => { el.style.outline='none'; });
     return;
   }
   if (!currentSongData) return;
   if (btn) btn.textContent = '⏹ STOP';
 
-  const bpm         = currentSongData.bpm || 120;
+  // Speed multiplier from slider (default 75% — half tempo for practice)
+  const speedPct    = parseInt(document.getElementById('strumSpeedSlider')?.value || 75);
+  const speedMult   = speedPct / 100;
+
+  const rawBpm      = currentSongData.bpm || 120;
+  const bpm         = rawBpm * speedMult;   // apply speed
   const pattern     = currentSongData.strum_pattern || [];
   const chords      = currentSongData.chords || [];
   const capo        = currentSongData.capo || 0;
   const beatsPerBar = currentSongData.time_signature === '3/4' ? 3 : 4;
 
-  // How many strum subdivisions per bar?
-  // If the pattern has 8 entries for 4/4, that's 2 subdivs per beat
-  const subdivsPerBar = pattern.length || beatsPerBar;
-  const msPerSubdiv   = (60000 / bpm / beatsPerBar) * (beatsPerBar / subdivsPerBar) * beatsPerBar;
-  // Simplified: one subdivision fires every (60000/bpm / subdivsPerBeat) ms
-  // subdivsPerBeat = subdivsPerBar / beatsPerBar
-  const subdivsPerBeat = subdivsPerBar / beatsPerBar;
-  const msPerSubdivFinal = 60000 / bpm / subdivsPerBeat;
+  // subdivisions per bar — how many strum events fire per bar
+  const subdivsPerBar  = Math.max(1, pattern.length || beatsPerBar);
+  // ms between each strum subdivision at this BPM
+  const msPerBeat      = 60000 / bpm;
+  const msPerSubdivFinal = msPerBeat / (subdivsPerBar / beatsPerBar);
 
   strumBeatIdx = 0;
   strumBarIdx  = 0;
@@ -5322,8 +5639,11 @@ function strumPlayAlong() {
         // Cycle through chords — one chord per bar
         const chord = chords[strumBarIdx % chords.length];
         const frets = chord?.frets || [0,0,0,0,0,0];
+        // Note duration = one bar length so chords ring until the next chord
+        const barDuration = (msPerSubdivFinal * subdivsPerBar) / 1000;
         strumChord(frets, capo, teacherAudioCtx,
-                   teacherAudioCtx.currentTime, beat.dir, 0.55);
+                   teacherAudioCtx.currentTime, beat.dir,
+                   Math.min(barDuration * 0.95, 2.0));
       } else {
         // Fallback click when no chord data
         const osc = teacherAudioCtx.createOscillator();
