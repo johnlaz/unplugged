@@ -874,11 +874,22 @@ select.filter-select {
       <div id="songSearchResult" style="display:none">
         <div class="song-meta-bar" id="songMetaBar"></div>
         <div class="song-result-wrap">
-          <div class="song-result-tabs">
-            <div class="song-result-tab active" onclick="showSongTab('chords',this)">CHORDS</div>
-            <div class="song-result-tab" onclick="showSongTab('lyrics',this)">LYRICS</div>
-            <div class="song-result-tab" onclick="showSongTab('strum',this)">STRUM</div>
-            <div class="song-result-tab" onclick="showSongTab('tab',this)">TAB</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg-panel)">
+            <div class="song-result-tabs" style="border-bottom:none;flex:1">
+              <div class="song-result-tab active" onclick="showSongTab('chords',this)">CHORDS</div>
+              <div class="song-result-tab" onclick="showSongTab('lyrics',this)">LYRICS</div>
+              <div class="song-result-tab" onclick="showSongTab('strum',this)">STRUM</div>
+              <div class="song-result-tab" onclick="showSongTab('tab',this)">TAB</div>
+            </div>
+            <!-- Shared play controls — always visible regardless of active tab -->
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;flex-shrink:0">
+              <button class="btn btn-sm btn-primary" id="songPlayBtn" onclick="toggleSongPlayThrough()" title="Play through chords at song tempo">🎸 PLAY</button>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px">SPEED</span>
+              <input type="range" id="strumSpeedSlider" min="25" max="150" value="75" step="5"
+                style="width:70px;accent-color:var(--accent)"
+                oninput="document.getElementById('strumSpeedLabel').textContent=this.value+'%'">
+              <span id="strumSpeedLabel" style="font-family:var(--mono);font-size:10px;color:var(--accent);width:32px">75%</span>
+            </div>
           </div>
           <div class="song-result-pane active" id="songPaneChords"></div>
           <div class="song-result-pane" id="songPaneLyrics"></div>
@@ -3368,6 +3379,8 @@ function showLazHub() {
   if (strumBtn) strumBtn.textContent = '🎸 PLAY THROUGH';
   const chordsBtn = document.getElementById('chordsPlayBtn');
   if (chordsBtn) chordsBtn.textContent = '🎸 PLAY THROUGH';
+  const songBtn = document.getElementById('songPlayBtn');
+  if (songBtn) songBtn.textContent = '🎸 PLAY';
 
   LAZ_PANELS.forEach(p => {
     const cap = p.charAt(0).toUpperCase() + p.slice(1);
@@ -5423,6 +5436,8 @@ function renderSongResult(data) {
   // Stop any playback from the previous song
   if (strumPlayInterval)   { clearInterval(strumPlayInterval); strumPlayInterval = null; }
   if (_progressionRunning) stopProgression();
+  const songPlayBtn = document.getElementById('songPlayBtn');
+  if (songPlayBtn) songPlayBtn.textContent = '🎸 PLAY';
   document.getElementById('songSearchLoading').style.display = 'none';
   document.getElementById('songSearchEmpty').style.display = 'none';
   document.getElementById('songSearchResult').style.display = 'block';
@@ -5464,16 +5479,7 @@ function renderSongResult(data) {
   document.getElementById('songPaneChords').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
       ${data.chord_progression ? `<div style="font-family:var(--mono);font-size:13px;color:var(--accent);padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;flex:1">PROGRESSION: ${data.chord_progression}</div>` : '<div></div>'}
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-sm btn-primary" id="chordsPlayBtn" onclick="chordsPlayThrough()" title="Play through all chords at song tempo with strum pattern">🎸 PLAY THROUGH</button>
-        <div style="display:flex;align-items:center;gap:4px">
-          <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px">SPEED</span>
-          <input type="range" id="strumSpeedSlider" min="25" max="150" value="75"
-            style="width:70px;accent-color:var(--accent)"
-            oninput="document.getElementById('strumSpeedLabel').textContent=this.value+'%'">
-          <span id="strumSpeedLabel" style="font-family:var(--mono);font-size:10px;color:var(--accent);width:32px">75%</span>
-        </div>
-      </div>
+
     </div>
     <div class="chord-grid">${(data.chords||[]).map(c => renderChordBox(c, capoVal)).join('')}</div>`;
 
@@ -5570,18 +5576,8 @@ function renderStrumPattern(data) {
       <span style="border:1px solid var(--accent-dim);padding:0 4px;border-radius:2px;color:var(--accent)">★ Accent</span>
     </div>
     ${data.strum_note ? `<div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:10px;padding:8px 12px;background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:4px">💡 ${data.strum_note}</div>` : ''}
-    <div style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">PLAY ALONG</div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <button class="btn btn-sm btn-primary" onclick="strumPlayAlong()" id="strumPlayBtn">🎸 PLAY THROUGH</button>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">SPEED</span>
-        <input type="range" id="strumSpeedSlider" min="25" max="150" value="75"
-          style="width:80px;accent-color:var(--accent)"
-          oninput="document.getElementById('strumSpeedLabel').textContent=this.value+'%'">
-        <span id="strumSpeedLabel" style="font-family:var(--mono);font-size:10px;color:var(--accent);width:36px">75%</span>
-      </div>
-      <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">Song BPM: ${data.bpm || 120}</span>
-    </div>`;
+    <div style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:6px">PLAY ALONG</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">Use the ▶ PLAY button above to play through at your chosen speed. Song BPM: ${data.bpm || 120}</div>`;
 }
 
 let strumPlayInterval = null;
@@ -5594,7 +5590,8 @@ function strumPlayAlong() {
     clearInterval(strumPlayInterval);
     strumPlayInterval = null;
     if (btn) btn.textContent = '🎸 PLAY THROUGH';
-    // Clear highlights
+    const songBtn = document.getElementById('songPlayBtn');
+    if (songBtn) songBtn.textContent = '🎸 PLAY';
     document.querySelectorAll('.strum-beat').forEach(el => { el.style.background=''; el.style.color=''; el.style.transform=''; });
     document.querySelectorAll('.chord-box').forEach(el => { el.style.outline='none'; });
     return;
@@ -5784,6 +5781,8 @@ function stopProgression() {
   if (strumBtn) strumBtn.textContent = '🎸 PLAY THROUGH';
   const chordsBtn = document.getElementById('chordsPlayBtn');
   if (chordsBtn) chordsBtn.textContent = '🎸 PLAY THROUGH';
+  const songBtn = document.getElementById('songPlayBtn');
+  if (songBtn) songBtn.textContent = '🎸 PLAY';
   // Clear all highlights
   document.querySelectorAll('.chord-box').forEach(box => {
     box.style.outline = 'none'; box.style.transform = 'scale(1)';
@@ -5793,34 +5792,33 @@ function stopProgression() {
   });
 }
 
-function chordsPlayThrough() {
-  const btn = document.getElementById('chordsPlayBtn');
-  // If already playing, stop
+function toggleSongPlayThrough() {
+  const btn = document.getElementById('songPlayBtn');
   if (strumPlayInterval) {
+    // Stop
     clearInterval(strumPlayInterval);
     strumPlayInterval = null;
-    if (btn) { btn.textContent = '🎸 PLAY THROUGH'; btn.classList.remove('btn-primary'); btn.classList.add('btn-primary'); }
-    document.querySelectorAll('.strum-beat').forEach(el => {
-      el.style.background = ''; el.style.color = ''; el.style.transform = '';
-    });
-    document.querySelectorAll('.chord-box').forEach(el => { el.style.outline = 'none'; });
+    if (window._strumStopPatch) { clearInterval(window._strumStopPatch); }
+    if (btn) { btn.textContent = '🎸 PLAY'; btn.classList.add('btn-primary'); }
+    document.querySelectorAll('.strum-beat').forEach(el => { el.style.background=''; el.style.color=''; el.style.transform=''; });
+    document.querySelectorAll('.chord-box').forEach(el => { el.style.outline='none'; });
     return;
   }
   if (!currentSongData) return;
   if (btn) btn.textContent = '⏹ STOP';
-  // Show the strum pattern visually if on chords tab — switch to strum tab
-  // Actually keep on chords tab so chord highlights are visible
   strumPlayAlong();
-  // Override the stop button reference since strumPlayAlong uses strumPlayBtn
-  // Patch: when strumPlayAlong stops, also reset chordsPlayBtn
-  const origStop = window._strumStopPatch;
+  // Watch for strumPlayAlong ending and reset the button
   window._strumStopPatch = setInterval(() => {
     if (!strumPlayInterval) {
-      if (btn) btn.textContent = '🎸 PLAY THROUGH';
+      const b = document.getElementById('songPlayBtn');
+      if (b) b.textContent = '🎸 PLAY';
       clearInterval(window._strumStopPatch);
     }
   }, 200);
 }
+
+// Keep chordsPlayThrough as alias for backward compat
+function chordsPlayThrough() { toggleSongPlayThrough(); }
 
 function showSongTab(name, el) {
   document.querySelectorAll('.song-result-tab').forEach(t => t.classList.remove('active'));
