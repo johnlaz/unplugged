@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="UNPLUGGED">
-<title>UNPLUGGED — Instrument Vault</title>
+<title>UNPLUGGED v1.0 — Instrument Vault</title>
 
 <!-- ── FAVICONS & ICONS ── -->
 <!-- Browser tab icon — ICO covers all legacy sizes -->
@@ -388,7 +388,7 @@ select.filter-select {
 <!-- ── HEADER ── -->
 <header>
   <div class="header-row1">
-    <div class="logo">UNPLUGGED<span>INSTRUMENT VAULT</span></div>
+    <div class="logo">UNPLUGGED<span>INSTRUMENT VAULT  v1.0</span></div>
     <div class="header-actions">
       <button class="btn btn-sm" onclick="openCamera()">📷 SCAN</button>
       <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ ADD</button>
@@ -399,6 +399,9 @@ select.filter-select {
     <span class="count-badge" id="headerCount">0 INSTRUMENTS</span>
     <span class="stat-badge">VAULT VALUE: <span id="vaultValue">$0</span></span>
     <span class="stat-badge clickable" id="headerGigs" onclick="toggleGigsFilter(this)" title="Filter instruments with gig log">GIGS: <span id="gigsTotal">0</span></span>
+    <span class="stat-badge clickable" id="apiStatusBadge" onclick="gearClick()" title="Groq API status — click to open settings" style="cursor:pointer">
+      <span id="apiStatusDot">🔴</span> <span id="apiStatusText">API: NOT SET</span>
+    </span>
   </div>
 </header>
 
@@ -431,6 +434,18 @@ select.filter-select {
       <option>STRINGED</option><option>KEYBOARD</option><option>WOODWIND</option>
       <option>BRASS</option><option>PERCUSSION</option><option>ELECTRONIC</option>
     </select>
+    <select class="filter-select" id="storageFilter" onchange="renderInventory()" title="Filter by storage location">
+      <option value="">ALL STORAGE</option>
+      <option>Case</option>
+      <option>Gig Bag</option>
+      <option>Guitar Stand</option>
+      <option>Wall Mount</option>
+      <option>Storage Room</option>
+      <option>Studio</option>
+      <option>Locker</option>
+      <option>Vehicle</option>
+      <option>Other</option>
+    </select>
     <select class="filter-select" id="sortSelect" onchange="renderInventory()">
       <option value="default">SORT: ADDED</option>
       <option value="name-az">NAME A→Z</option><option value="name-za">NAME Z→A</option>
@@ -458,24 +473,100 @@ select.filter-select {
 <!--  SCREEN: IMPORT / EXPORT                               -->
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="screen" id="screen-import-export">
-  <div class="ie-grid">
-    <div class="ie-card">
-      <h3>IMPORT</h3>
-      <p>Import instruments from an Excel (.xlsx) or CSV file. Existing instruments matched by serial number will be updated.</p>
-      <div class="ie-drop-zone" id="dropZone" onclick="document.getElementById('importFile').click()"
-           ondragover="event.preventDefault();this.classList.add('drag-over')"
-           ondragleave="this.classList.remove('drag-over')"
-           ondrop="handleFileDrop(event)">
-        <div class="ie-drop-icon">📂</div>
-        <div>Drop .xlsx / .csv here<br><small>or click to browse</small></div>
+  <div class="main">
+
+    <!-- ── XLSX / CSV ── -->
+    <div class="ie-grid" style="margin-bottom:24px">
+      <div class="ie-card">
+        <h3>📥 IMPORT</h3>
+        <p>Import from Excel or CSV. Matched by serial number — updates existing, adds new, never duplicates.</p>
+        <div class="ie-drop-zone" id="dropZone" onclick="document.getElementById('importFile').click()"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleFileDrop(event)">
+          <div class="ie-drop-icon">📂</div>
+          <div>Drop .xlsx / .csv here<br><small>or click to browse</small></div>
+        </div>
+        <div id="importPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
+        <input type="file" id="importFile" accept=".xlsx,.csv" style="display:none" onchange="importFile(event)">
       </div>
-      <input type="file" id="importFile" accept=".xlsx,.csv" style="display:none" onchange="importFile(event)">
+      <div class="ie-card">
+        <h3>📤 EXPORT</h3>
+        <p>Export your full instrument vault. Includes all specs, notes, gig history, and service records.</p>
+        <button class="btn btn-primary" onclick="exportXLSX()" style="margin-bottom:10px;width:100%">⬇ EXPORT TO EXCEL (.xlsx)</button>
+        <button class="btn" onclick="exportCSV()" style="margin-bottom:10px;width:100%">⬇ EXPORT TO CSV</button>
+        <button class="btn" onclick="downloadBlankTemplate()" style="margin-bottom:16px;width:100%">📋 DOWNLOAD BLANK TEMPLATE</button>
+        <button class="btn" onclick="exportInsurancePDF()" style="width:100%">📄 EXPORT INSURANCE REPORT</button>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:8px">
+          Template columns: make · model · type · family · serial_number · year · country · finish · body_material · neck_material · key · condition · value · purchase_price · purchase_date · storage_location · notes
+        </div>
+      </div>
     </div>
-    <div class="ie-card">
-      <h3>EXPORT</h3>
-      <p>Export your full instrument vault to Excel. Includes all specs, notes, gig history, and service records.</p>
-      <button class="btn btn-primary" onclick="exportXLSX()" style="margin-bottom:12px;width:100%">⬇ EXPORT TO EXCEL</button>
-      <button class="btn" onclick="exportCSV()" style="width:100%">⬇ EXPORT TO CSV</button>
+
+    <!-- ── FULL BACKUP ── -->
+    <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      🗄 FULL BACKUP
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">JSON — everything in one file</span>
+    </div>
+    <div class="ie-grid">
+      <div class="ie-card">
+        <h3>📦 EXPORT BACKUP</h3>
+        <p>Downloads a <strong>.json</strong> file with your entire vault — all instruments, photos (base64), gig logs, service records, AI descriptions, API key, and settings. Date-stamped filename.</p>
+        <button class="btn btn-primary" onclick="exportFullBackup()" style="margin-top:12px;width:100%">⬇ EXPORT FULL BACKUP (.json)</button>
+      </div>
+      <div class="ie-card">
+        <h3>♻ RESTORE BACKUP</h3>
+        <p>Import a <strong>.json</strong> backup. <strong>Merge</strong> upserts by serial number without touching existing data. <strong>Replace All</strong> wipes and restores everything.</p>
+        <div class="ie-drop-zone" id="backupDropZone" onclick="document.getElementById('backupFile').click()"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleBackupDrop(event)">
+          <div class="ie-drop-icon">📄</div>
+          <div>Drop .json backup here<br><small>or click to browse</small></div>
+        </div>
+        <div id="backupPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
+        <input type="file" id="backupFile" accept=".json" style="display:none" onchange="loadBackupFile(event)">
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn" onclick="restoreBackupMerge()" style="flex:1" id="restoreMergeBtn" disabled>MERGE</button>
+          <button class="btn btn-danger" onclick="restoreBackupReplace()" style="flex:1" id="restoreReplaceBtn" disabled>REPLACE ALL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOTES & FEEDBACK ── -->
+    <div style="margin-top:24px">
+      <button class="btn" onclick="openModal('notesModal')" style="display:flex;align-items:center;gap:8px">
+        📝 NOTES &amp; FEEDBACK
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">Ideas · Issues · Notes</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ NOTES & FEEDBACK MODAL ══ -->
+<div class="modal-overlay" id="notesModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title">📝 NOTES &amp; FEEDBACK</span>
+      <button class="modal-close" onclick="closeModal('notesModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
+        <div class="song-result-tab active" onclick="switchNotesTab('ideas',this)" style="font-size:12px">💡 IDEAS</div>
+        <div class="song-result-tab" onclick="switchNotesTab('issues',this)" style="font-size:12px">🐛 ISSUES</div>
+        <div class="song-result-tab" onclick="switchNotesTab('notes',this)" style="font-size:12px">📌 NOTES</div>
+      </div>
+      <div id="notesTabIdeas"><div id="notesListIdeas"></div></div>
+      <div id="notesTabIssues" style="display:none"><div id="notesListIssues"></div></div>
+      <div id="notesTabNotes" style="display:none"><div id="notesListNotes"></div></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <textarea class="form-textarea" id="notesInput" placeholder="Add a note, idea, or bug report…" style="flex:1;height:60px"></textarea>
+        <button class="btn btn-primary btn-sm" onclick="addNotesEntry()" style="align-self:flex-end">ADD</button>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="exportNotesTxt()">📄 EXPORT .TXT</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1136,6 +1227,25 @@ select.filter-select {
         <div class="form-group">
           <label class="form-label">PURCHASE PRICE ($)</label>
           <input class="form-input" id="f-purchase" type="number" placeholder="What you paid">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PURCHASE DATE</label>
+          <input class="form-input" id="f-purchase-date" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">STORAGE LOCATION</label>
+          <select class="form-select" id="f-storage">
+            <option value="">— Select —</option>
+            <option>Case</option>
+            <option>Gig Bag</option>
+            <option>Guitar Stand</option>
+            <option>Wall Mount</option>
+            <option>Storage Room</option>
+            <option>Studio</option>
+            <option>Locker</option>
+            <option>Vehicle</option>
+            <option>Other</option>
+          </select>
         </div>
         <div class="form-group full">
           <label class="form-label">NOTES</label>
@@ -1819,6 +1929,7 @@ function saveSettings() {
   localStorage.setItem('unplugged_text_model', model);
   closeModal('settingsModal');
   showToast('Settings saved', 'success');
+  updateApiStatus();
 }
 
 function loadSettings() {
@@ -2090,6 +2201,7 @@ function updateStats() {
   document.getElementById('gigsTotal').textContent = gigs.toLocaleString();
   // Background image prefetch — stagger so we don't hammer APIs
   if (getApiKey()) prefetchMissingImages();
+  updateApiStatus();
 }
 
 let _prefetchTimer = null;
@@ -2739,6 +2851,8 @@ async function aiFillSpecs() {
       neck_material: document.getElementById('f-neck').value.trim(),
       year: document.getElementById('f-year').value.trim(),
       value: document.getElementById('f-value').value.trim(),
+      purchase_date: document.getElementById('f-purchase-date')?.value || '',
+      storage_location: document.getElementById('f-storage')?.value || '',
     };
     const prompt = buildSpecPrompt(make, model, existing);
     const resText = await grokText(prompt);
@@ -3186,6 +3300,274 @@ function parseCSV(text) {
     return obj;
   });
 }
+
+
+// ══════════════════════════════════════════════════════════
+//  FULL BACKUP — export / restore
+// ══════════════════════════════════════════════════════════
+function exportFullBackup() {
+  const today = new Date().toISOString().slice(0,10);
+  const backup = {
+    version: '1.0',
+    date: today,
+    inventory,
+    api_key:    localStorage.getItem('unplugged_api_key') || '',
+    text_model: localStorage.getItem('unplugged_text_model') || '',
+    view:       localStorage.getItem('unplugged_view') || 'grid',
+    laz:        localStorage.getItem('unplugged_laz') || '',
+    notes:      JSON.parse(localStorage.getItem('unplugged_notes') || '{}'),
+    song_cache: JSON.parse(localStorage.getItem('unplugged_song_cache') || '{}'),
+    learn_vault:JSON.parse(localStorage.getItem('unplugged_learn_vault') || '[]'),
+    setlists:   JSON.parse(localStorage.getItem('unplugged_setlists') || '{}'),
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `unplugged-backup-${today}.json`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  showToast(`Backup exported: ${inventory.length} instruments`, 'success');
+}
+
+let _pendingBackup = null;
+
+function loadBackupFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  handleBackupFileRead(file);
+}
+
+function handleBackupDrop(e) {
+  e.preventDefault();
+  document.getElementById('backupDropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleBackupFileRead(file);
+}
+
+function handleBackupFileRead(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      _pendingBackup = data;
+      const count = (data.inventory || []).length;
+      const hasKey = !!data.api_key;
+      const hasNotes = !!(data.notes && Object.keys(data.notes).length);
+      const preview = document.getElementById('backupPreview');
+      preview.style.display = 'block';
+      preview.textContent = `✓ ${count} instrument${count !== 1 ? 's' : ''}${hasKey ? ' + API key' : ''}${hasNotes ? ' + notes' : ''} ready to restore`;
+      document.getElementById('restoreMergeBtn').disabled   = false;
+      document.getElementById('restoreReplaceBtn').disabled = false;
+    } catch(_) {
+      showToast('Invalid backup file', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function restoreBackupMerge() {
+  if (!_pendingBackup) return;
+  const incoming = _pendingBackup.inventory || [];
+  let added = 0, updated = 0;
+  incoming.forEach(item => {
+    const idx = inventory.findIndex(g =>
+      g.serial_number && item.serial_number &&
+      g.serial_number.trim() === item.serial_number.trim()
+    );
+    if (idx >= 0) { inventory[idx] = { ...inventory[idx], ...item }; updated++; }
+    else { inventory.push({ ...item, id: item.id || uid() }); added++; }
+  });
+  if (_pendingBackup.api_key) localStorage.setItem('unplugged_api_key', _pendingBackup.api_key);
+  if (_pendingBackup.text_model) localStorage.setItem('unplugged_text_model', _pendingBackup.text_model);
+  if (_pendingBackup.notes) localStorage.setItem('unplugged_notes', JSON.stringify(_pendingBackup.notes));
+  if (_pendingBackup.learn_vault) localStorage.setItem('unplugged_learn_vault', JSON.stringify(_pendingBackup.learn_vault));
+  if (_pendingBackup.setlists) localStorage.setItem('unplugged_setlists', JSON.stringify(_pendingBackup.setlists));
+  save(); renderInventory(); updateApiStatus();
+  showToast(`Merged: ${added} added, ${updated} updated`, 'success');
+  _pendingBackup = null;
+}
+
+function restoreBackupReplace() {
+  if (!_pendingBackup) return;
+  if (!confirm(`Replace ALL ${inventory.length} current instruments with ${(_pendingBackup.inventory||[]).length} from backup? This cannot be undone.`)) return;
+  inventory = (_pendingBackup.inventory || []).map(item => ({ ...item, id: item.id || uid() }));
+  if (_pendingBackup.api_key) localStorage.setItem('unplugged_api_key', _pendingBackup.api_key);
+  if (_pendingBackup.text_model) localStorage.setItem('unplugged_text_model', _pendingBackup.text_model);
+  if (_pendingBackup.view) localStorage.setItem('unplugged_view', _pendingBackup.view);
+  if (_pendingBackup.notes) localStorage.setItem('unplugged_notes', JSON.stringify(_pendingBackup.notes));
+  if (_pendingBackup.learn_vault) localStorage.setItem('unplugged_learn_vault', JSON.stringify(_pendingBackup.learn_vault));
+  if (_pendingBackup.setlists) localStorage.setItem('unplugged_setlists', JSON.stringify(_pendingBackup.setlists));
+  save(); renderInventory(); updateApiStatus();
+  showToast(`Restored ${inventory.length} instruments from backup`, 'success');
+  _pendingBackup = null;
+}
+
+// ══════════════════════════════════════════════════════════
+//  BLANK TEMPLATE DOWNLOAD
+// ══════════════════════════════════════════════════════════
+function downloadBlankTemplate() {
+  const cols = ['make','model','type','family','serial_number','year','country',
+    'finish','body_material','neck_material','key','condition','value',
+    'purchase_price','purchase_date','storage_location','notes'];
+  const ws = XLSX.utils.aoa_to_sheet([cols]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Template');
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  const blob  = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url; a.download = 'unplugged-template.xlsx';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  showToast('Template downloaded', 'success');
+}
+
+// ══════════════════════════════════════════════════════════
+//  INSURANCE PDF EXPORT
+// ══════════════════════════════════════════════════════════
+function exportInsurancePDF() {
+  if (!inventory.length) { showToast('No instruments to export', 'error'); return; }
+  const total = inventory.reduce((s,g) => s + (Number(g.value)||0), 0);
+  const date  = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+  const rows  = inventory.map(g => `
+    <tr>
+      <td>${g.make || ''} ${g.model || ''}</td>
+      <td>${g.type || ''}</td>
+      <td>${g.year || ''}</td>
+      <td>${g.serial_number || ''}</td>
+      <td>${g.condition || ''}</td>
+      <td>${g.storage_location || ''}</td>
+      <td style="text-align:right">${g.value ? '$' + Number(g.value).toLocaleString() : '—'}</td>
+    </tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>UNPLUGGED — Insurance Report ${date}</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
+      h1 { font-size: 24px; margin-bottom: 4px; }
+      .sub { color: #555; font-size: 13px; margin-bottom: 24px; }
+      .summary { background: #f5f5f5; padding: 16px; border-radius: 4px; margin-bottom: 24px; display: flex; gap: 40px; }
+      .summary div { font-size: 14px; }
+      .summary strong { font-size: 20px; display: block; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th { background: #111; color: #fff; padding: 8px 12px; text-align: left; }
+      td { padding: 8px 12px; border-bottom: 1px solid #ddd; }
+      tr:nth-child(even) td { background: #f9f9f9; }
+      .total td { font-weight: bold; border-top: 2px solid #111; }
+      @media print { body { padding: 20px; } }
+    </style></head><body>
+    <h1>🎸 UNPLUGGED — Instrument Vault</h1>
+    <div class="sub">Insurance Report · Generated ${date}</div>
+    <div class="summary">
+      <div><strong>${inventory.length}</strong>Total Instruments</div>
+      <div><strong>$${total.toLocaleString()}</strong>Total Estimated Value</div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Instrument</th><th>Type</th><th>Year</th><th>Serial #</th>
+        <th>Condition</th><th>Storage</th><th>Est. Value</th>
+      </tr></thead>
+      <tbody>${rows}
+        <tr class="total">
+          <td colspan="6">TOTAL</td>
+          <td style="text-align:right">$${total.toLocaleString()}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:24px;font-size:11px;color:#888">
+      Generated by UNPLUGGED v1.0 · ${date} · For insurance purposes only.
+    </p>
+    <script>window.onload=()=>window.print()<\/script>
+  </body></html>`;
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); }
+  else showToast('Allow popups to open the insurance report', 'error');
+}
+
+// ══════════════════════════════════════════════════════════
+//  NOTES & FEEDBACK
+// ══════════════════════════════════════════════════════════
+let notesData = JSON.parse(localStorage.getItem('unplugged_notes') || '{"ideas":[],"issues":[],"notes":[]}');
+let notesActiveTab = 'ideas';
+
+function switchNotesTab(tab, el) {
+  notesActiveTab = tab;
+  ['ideas','issues','notes'].forEach(t => {
+    document.getElementById('notesTab' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#notesModal .song-result-tab').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderNotesTab(tab);
+}
+
+function renderNotesTab(tab) {
+  const list = document.getElementById('notesList' + tab.charAt(0).toUpperCase() + tab.slice(1));
+  if (!list) return;
+  const entries = (notesData[tab] || []);
+  if (!entries.length) { list.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);padding:8px 0">No entries yet</div>'; return; }
+  list.innerHTML = entries.slice().reverse().map((e, ri) => {
+    const i = entries.length - 1 - ri;
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:2px">${e.date}</div>
+        <div style="font-size:14px;color:var(--text-primary)">${e.text}</div>
+      </div>
+      <button onclick="deleteNotesEntry('${tab}',${i})" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px 6px">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addNotesEntry() {
+  const input = document.getElementById('notesInput');
+  const text  = input.value.trim();
+  if (!text) return;
+  if (!notesData[notesActiveTab]) notesData[notesActiveTab] = [];
+  notesData[notesActiveTab].push({ text, date: new Date().toLocaleString() });
+  localStorage.setItem('unplugged_notes', JSON.stringify(notesData));
+  input.value = '';
+  renderNotesTab(notesActiveTab);
+}
+
+function deleteNotesEntry(tab, idx) {
+  notesData[tab].splice(idx, 1);
+  localStorage.setItem('unplugged_notes', JSON.stringify(notesData));
+  renderNotesTab(tab);
+}
+
+function exportNotesTxt() {
+  const lines = [];
+  ['ideas','issues','notes'].forEach(tab => {
+    lines.push(`=== ${tab.toUpperCase()} ===`);
+    (notesData[tab] || []).forEach(e => lines.push(`[${e.date}] ${e.text}`));
+    lines.push('');
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download='unplugged-notes.txt';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  showToast('Notes exported', 'success');
+}
+
+// ══════════════════════════════════════════════════════════
+//  API STATUS LIGHT — updates on load and settings save
+// ══════════════════════════════════════════════════════════
+function updateApiStatus() {
+  const key  = getApiKey();
+  const dot  = document.getElementById('apiStatusDot');
+  const text = document.getElementById('apiStatusText');
+  if (!dot || !text) return;
+  if (!key) {
+    dot.textContent  = '🔴'; text.textContent = 'API: NOT SET';
+  } else {
+    dot.textContent  = '🟢'; text.textContent = 'API: ACTIVE';
+  }
+}
+
+// Import preview hook — show count before committing
+const _origProcessImportFile = processImportFile;
 
 function exportXLSX() {
   if (!inventory.length) { showToast('No instruments to export', 'error'); return; }
