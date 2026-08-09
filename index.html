@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#c8845a" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#c8845a">
+<meta name="theme-color" content="#D4AF37" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#D4AF37">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="UNPLUGGED">
-<title>UNPLUGGED v1.0 — Instrument Vault</title>
+<title>UNPLUGGED v2.0 — Instrument Vault</title>
 
 <!-- ── FAVICONS & ICONS ── -->
 <!-- Browser tab icon — ICO covers all legacy sizes -->
@@ -24,33 +24,37 @@
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
 <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
 :root {
-  --bg-deep: #141210;
-  --bg-card: #1c1916;
-  --bg-panel: #211e1b;
-  --bg-hover: #2a2520;
-  --border: #332e28;
-  --border-bright: #4a4038;
-  --accent: #c8845a;
-  --accent-dim: #8a5a3a;
-  --accent-glow: rgba(200,132,90,0.15);
-  --accent-bright: #efaf7f;
+  --bg-deep: #0A0A0C;
+  --bg-card: #1C1C1E;
+  --bg-panel: #221F26;
+  --bg-hover: #2A2730;
+  --border: rgba(255,255,255,0.08);
+  --border-bright: rgba(255,255,255,0.18);
+  --accent: #D4AF37;
+  --accent-dim: #8a7222;
+  --accent-glow: rgba(212,175,55,0.15);
+  --accent-bright: #E8C766;
   --red: #c0392b;
   --green: #4a9a6a;
-  --text-primary: #ede8e0;
-  --text-secondary: #9a8f84;
-  --text-dim: #5a5048;
-  --mono: 'Share Tech Mono', monospace;
-  --heading: 'Bebas Neue', sans-serif;
-  --body: 'Barlow Condensed', sans-serif;
+  --text-primary: #F2F0EA;
+  --text-secondary: #9a978f;
+  --text-dim: #5a5750;
+  --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  --heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --body: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-lg: 18px;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+html { -webkit-font-smoothing: antialiased; }
 
 body {
   background: var(--bg-deep);
@@ -58,56 +62,58 @@ body {
   font-family: var(--body);
   min-height: 100vh;
   overflow-x: hidden;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  overscroll-behavior-y: none;
 }
 
 body::before {
   content:'';
   position:fixed; inset:0;
   background-image:
-    linear-gradient(rgba(200,132,90,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(200,132,90,0.025) 1px, transparent 1px);
+    linear-gradient(rgba(212,175,55,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,175,55,0.02) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events:none; z-index:0;
 }
 
 /* ── HEADER ── */
 header {
-  position: sticky; top:0; z-index:100;
-  background: rgba(20,18,16,0.97);
-  backdrop-filter: blur(12px);
+  position: sticky; top:0; z-index:90;
+  background: rgba(10,10,12,0.9);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   display: flex; flex-direction: column; justify-content: center;
-  padding: 8px 16px; gap: 6px;
+  padding: calc(8px + env(safe-area-inset-top)) 16px 8px; gap: 6px;
 }
 .header-row1 { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .header-row2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .logo {
   font-family: var(--heading);
-  font-size: 24px; letter-spacing: 4px;
+  font-size: 24px; letter-spacing:0.5px;
   color: var(--accent);
-  text-shadow: 0 0 20px rgba(200,132,90,0.5);
+  text-shadow: 0 0 20px rgba(212,175,55,0.5);
   position: relative;
 }
 .logo::before {
   content: '';
   position: absolute;
   inset: -8px -16px;
-  background: radial-gradient(ellipse at 40% 50%, rgba(200,132,90,0.18) 0%, rgba(200,132,90,0.06) 45%, transparent 72%);
-  border-radius: 8px;
+  background: radial-gradient(ellipse at 40% 50%, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.06) 45%, transparent 72%);
+  border-radius:16px;
   pointer-events: none;
   z-index: -1;
 }
-.logo span { color:var(--text-dim); font-size:10px; font-family:var(--mono); display:block; letter-spacing:2px; margin-top:-4px; }
+.logo span { color:var(--text-dim); font-size:10px; font-family:var(--mono); display:block; letter-spacing:0.3px; margin-top:-4px; }
 .header-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
 .count-badge {
   font-family:var(--mono); font-size:11px;
   color:var(--accent); background:var(--accent-glow);
-  border:1px solid var(--accent-dim); padding:3px 10px; border-radius:2px;
+  border:1px solid var(--accent-dim); padding:3px 10px; border-radius:14px;
 }
 .stat-badge {
   font-family:var(--mono); font-size:11px;
   color:var(--text-secondary); background:var(--bg-card);
-  border:1px solid var(--border); padding:3px 10px; border-radius:2px; white-space:nowrap;
+  border:1px solid var(--border); padding:3px 10px; border-radius:14px; white-space:nowrap;
 }
 .stat-badge span { color:var(--accent); }
 .stat-badge.clickable { cursor:pointer; transition:border-color .2s, color .2s; }
@@ -117,31 +123,41 @@ header {
 /* ── BUTTONS ── */
 .btn {
   font-family:var(--body); font-weight:600; font-size:13px;
-  letter-spacing:1.5px; text-transform:uppercase;
+  letter-spacing:0.3px;
   padding:8px 16px; border:1px solid var(--border-bright);
   background:transparent; color:var(--text-secondary);
-  cursor:pointer; border-radius:2px; transition:all .2s; white-space:nowrap;
+  cursor:pointer; border-radius:var(--radius-sm); transition:all .2s var(--ease); white-space:nowrap;
+  touch-action: manipulation;
 }
 .btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
-.btn-primary { background:var(--accent); color:#141210; border-color:var(--accent); font-weight:700; }
-.btn-primary:hover { background:#d99870; border-color:#d99870; color:#141210; }
+.btn:active { transform: scale(.96); }
+.btn-primary { background:var(--accent); color:#0A0A0C; border-color:var(--accent); font-weight:700; }
+.btn-primary:hover { background:#e0c157; border-color:#e0c157; color:#0A0A0C; }
 .btn-danger { border-color:var(--red); color:var(--red); }
 .btn-danger:hover { background:rgba(192,57,43,0.15); }
 .btn-sm { padding:5px 10px; font-size:11px; }
 .btn-icon { padding:8px 10px; font-size:16px; }
 
-/* ── NAV TABS ── */
+/* ── NAV TABS (fixed bottom bar, iOS-style) ── */
 .nav-tabs {
-  display:flex; gap:0; border-bottom:1px solid var(--border);
-  padding:0 24px; background:var(--bg-card); position:relative; z-index:10;
+  display:flex; gap:0;
+  position:fixed; left:0; right:0; bottom:0; z-index:100;
+  background:rgba(28,28,30,0.85);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top:1px solid var(--border);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  justify-content: space-around;
 }
 .nav-tab {
-  font-family:var(--heading); font-size:16px; letter-spacing:2px;
-  padding:14px 20px; cursor:pointer; color:var(--text-dim);
-  border-bottom:2px solid transparent; transition:all .2s; border-top:2px solid transparent;
+  font-family:var(--body); font-weight:600; font-size:11px; letter-spacing:0.2px;
+  flex:1; text-align:center;
+  padding:8px 6px; cursor:pointer; color:var(--text-dim);
+  border-radius: var(--radius-sm);
+  transition: color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
 }
 .nav-tab:hover { color:var(--text-secondary); }
-.nav-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.nav-tab.active { color:var(--accent); background:var(--accent-glow); }
+.nav-tab:active { transform: scale(.94); }
 
 /* ── MAIN LAYOUT ── */
 .main { position:relative; z-index:1; padding:24px; max-width:1400px; margin:0 auto; }
@@ -153,24 +169,24 @@ header {
 .search-box {
   flex:1; min-width:200px; background:var(--bg-card); border:1px solid var(--border);
   color:var(--text-primary); font-family:var(--mono); font-size:13px;
-  padding:8px 14px; border-radius:2px; outline:none; transition:border-color .2s;
+  padding:8px 14px; border-radius:14px; outline:none; transition:border-color .2s;
 }
 .search-box:focus { border-color:var(--accent); }
 .search-box::placeholder { color:var(--text-dim); }
 select.filter-select {
   background:var(--bg-card); border:1px solid var(--border); color:var(--text-secondary);
   font-family:var(--body); font-size:13px; font-weight:600;
-  padding:8px 12px; border-radius:2px; cursor:pointer; outline:none;
+  padding:8px 12px; border-radius:14px; cursor:pointer; outline:none;
 }
 
 /* ── VIEW TOGGLE ── */
-.view-toggle { display:flex; gap:2px; background:var(--bg-card); border:1px solid var(--border); border-radius:3px; padding:2px; }
+.view-toggle { display:flex; gap:2px; background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:2px; }
 .view-btn {
-  background:none; border:none; cursor:pointer; padding:5px 9px; border-radius:2px;
+  background:none; border:none; cursor:pointer; padding:5px 9px; border-radius:14px;
   color:var(--text-dim); font-size:15px; transition:all .15s; line-height:1;
 }
 .view-btn:hover { color:var(--text-secondary); background:var(--bg-hover); }
-.view-btn.active { background:var(--accent); color:#141210; }
+.view-btn.active { background:var(--accent); color:#0A0A0C; }
 
 /* ── GRID ── */
 .inventory-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:16px; }
@@ -194,12 +210,12 @@ select.filter-select {
 .inventory-grid.view-list .inst-card:hover .list-arrow { color:var(--accent); }
 
 .inst-card {
-  background:var(--bg-card); border:1px solid var(--border); border-radius:4px;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
   overflow:hidden; cursor:pointer; transition:all .25s; position:relative;
 }
 .inst-card:hover {
   border-color:var(--accent);
-  box-shadow:0 0 20px rgba(200,132,90,0.14), 0 4px 20px rgba(0,0,0,0.4);
+  box-shadow:0 0 20px rgba(212,175,55,0.14), 0 4px 20px rgba(0,0,0,0.4);
   transform:translateY(-2px);
 }
 .inst-card-img {
@@ -214,19 +230,19 @@ select.filter-select {
   position:absolute; top:8px; left:8px;
   font-family:var(--mono); font-size:10px;
   background:rgba(10,11,13,0.85); border:1px solid var(--border-bright);
-  color:var(--accent); padding:3px 7px; border-radius:2px;
+  color:var(--accent); padding:3px 7px; border-radius:14px;
 }
 .inst-card-body { padding:14px; }
 .inst-card-name { font-family:var(--heading); font-size:20px; letter-spacing:1px; color:var(--text-primary); line-height:1.1; }
-.inst-card-brand { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+.inst-card-brand { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:0.3px; text-transform:uppercase; margin-top:2px; }
 .inst-card-meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-.meta-chip { font-family:var(--mono); font-size:10px; padding:3px 8px; background:var(--bg-panel); border:1px solid var(--border); border-radius:2px; color:var(--text-secondary); }
+.meta-chip { font-family:var(--mono); font-size:10px; padding:3px 8px; background:var(--bg-panel); border:1px solid var(--border); border-radius:14px; color:var(--text-secondary); }
 .inst-card-serial { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-top:8px; }
 
 /* ── EMPTY STATE ── */
 .empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; color:var(--text-dim); }
 .empty-icon { font-size:64px; margin-bottom:16px; opacity:.3; }
-.empty-state h3 { font-family:var(--heading); font-size:28px; letter-spacing:3px; margin-bottom:8px; }
+.empty-state h3 { font-family:var(--heading); font-size:28px; letter-spacing:0.4px; margin-bottom:8px; }
 .empty-state p { font-size:14px; }
 
 /* ── MODAL ── */
@@ -238,7 +254,7 @@ select.filter-select {
 .modal-overlay.open { display:flex; }
 .modal {
   background:var(--bg-panel); border:1px solid var(--border-bright);
-  border-radius:6px; width:100%; max-width:680px;
+  border-radius:16px; width:100%; max-width:680px;
   max-height:90vh; overflow-y:auto;
   box-shadow:0 20px 60px rgba(0,0,0,0.7);
 }
@@ -247,8 +263,8 @@ select.filter-select {
   padding:16px 24px; border-bottom:1px solid var(--border);
   position:sticky; top:0; background:var(--bg-panel); z-index:1;
 }
-.modal-title { font-family:var(--heading); font-size:20px; letter-spacing:3px; color:var(--accent); }
-.modal-close { background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; padding:4px 8px; border-radius:2px; }
+.modal-title { font-family:var(--heading); font-size:20px; letter-spacing:0.4px; color:var(--accent); }
+.modal-close { background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; padding:4px 8px; border-radius:14px; }
 .modal-close:hover { color:var(--text-primary); background:var(--bg-hover); }
 .modal-body { padding:24px; }
 .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
@@ -257,11 +273,11 @@ select.filter-select {
 .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 .form-group { display:flex; flex-direction:column; gap:6px; }
 .form-group.full { grid-column:1/-1; }
-.form-label { font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--accent); text-transform:uppercase; }
+.form-label { font-family:var(--mono); font-size:10px; letter-spacing:0.3px; color:var(--accent); text-transform:uppercase; }
 .form-input, .form-select, .form-textarea {
   background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary);
   font-family:var(--body); font-size:15px; font-weight:500;
-  padding:10px 12px; border-radius:2px; outline:none; transition:border-color .2s; width:100%;
+  padding:10px 12px; border-radius:14px; outline:none; transition:border-color .2s; width:100%;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--accent); }
 .form-textarea { resize:vertical; min-height:80px; font-size:14px; }
@@ -278,27 +294,27 @@ select.filter-select {
 #detailPrevBtn:disabled, #detailNextBtn:disabled { opacity:.3; cursor:default; }
 .detail-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,380px); gap:24px; margin-bottom:24px; }
 @media (max-width:900px) { .detail-hero { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr; } }
-.detail-img-wrap { border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.detail-img-wrap { border:1px solid var(--border); border-radius:14px; overflow:hidden; }
 .detail-img-panel { background:var(--bg-card); aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .detail-img-panel img { width:100%; height:100%; object-fit:cover; }
 .detail-img-placeholder { font-size:80px; opacity:.15; }
 .detail-img-upload-btn {
   display:block; width:100%; box-sizing:border-box;
   background:rgba(10,11,13,0.82); border:1px solid var(--border-bright); border-top:none;
-  color:var(--accent); font-family:var(--mono); font-size:11px; letter-spacing:2px;
+  color:var(--accent); font-family:var(--mono); font-size:11px; letter-spacing:0.3px;
   text-align:center; padding:9px; cursor:pointer; transition:background .2s;
 }
 .detail-img-upload-btn:first-of-type { border-top:1px solid var(--border-bright); }
-.detail-img-upload-btn:hover { background:rgba(200,132,90,0.20); }
+.detail-img-upload-btn:hover { background:rgba(212,175,55,0.20); }
 .detail-info-panel { display:flex; flex-direction:column; gap:16px; }
-.detail-name { font-family:var(--heading); font-size:42px; letter-spacing:2px; line-height:1; color:var(--text-primary); }
-.detail-brand { font-family:var(--mono); font-size:12px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; }
+.detail-name { font-family:var(--heading); font-size:42px; letter-spacing:0.3px; line-height:1; color:var(--text-primary); }
+.detail-brand { font-family:var(--mono); font-size:12px; letter-spacing:0.4px; color:var(--accent); text-transform:uppercase; }
 .detail-specs-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.spec-row { background:var(--bg-card); border:1px solid var(--border); border-radius:2px; padding:10px 12px; }
-.spec-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--text-dim); }
+.spec-row { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:10px 12px; }
+.spec-label { font-family:var(--mono); font-size:9px; letter-spacing:0.3px; color:var(--text-dim); }
 .spec-value { font-size:15px; font-weight:600; color:var(--text-primary); margin-top:2px; }
-.detail-description { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; padding:20px; font-size:15px; line-height:1.7; color:var(--text-secondary); }
-.section-title { font-family:var(--heading); font-size:20px; letter-spacing:2px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+.detail-description { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; font-size:15px; line-height:1.7; color:var(--text-secondary); }
+.section-title { font-family:var(--heading); font-size:20px; letter-spacing:0.3px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px; }
 .ai-loading { display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:12px; color:var(--text-dim); }
 .ai-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); animation:pulse 1s infinite; }
 .ai-dot:nth-child(2) { animation-delay:.2s; }
@@ -309,30 +325,30 @@ select.filter-select {
 /* ── SERVICE / MODS / GEAR PANELS ── */
 .smg-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:20px; }
 @media (max-width:900px) { .smg-grid { grid-template-columns:1fr; } }
-.smg-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; padding:16px; }
-.smg-title { font-family:var(--heading); font-size:16px; letter-spacing:2px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+.smg-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:16px; }
+.smg-title { font-family:var(--heading); font-size:16px; letter-spacing:0.3px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px; }
 .smg-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px; }
 .smg-row input[type=checkbox] { accent-color:var(--accent); width:15px; height:15px; cursor:pointer; flex-shrink:0; }
 .smg-row label { cursor:pointer; color:var(--text-secondary); line-height:1.3; }
-.smg-input { background:var(--bg-panel); border:1px solid var(--border); color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:5px 8px; border-radius:3px; width:100%; box-sizing:border-box; }
+.smg-input { background:var(--bg-panel); border:1px solid var(--border); color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:5px 8px; border-radius:14px; width:100%; box-sizing:border-box; }
 .smg-input:focus { outline:none; border-color:var(--accent); }
 .smg-counter { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
-.smg-counter-btn { background:var(--bg-panel); border:1px solid var(--border); color:var(--accent); font-family:var(--mono); font-size:16px; width:30px; height:30px; cursor:pointer; border-radius:3px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.smg-counter-btn { background:var(--bg-panel); border:1px solid var(--border); color:var(--accent); font-family:var(--mono); font-size:16px; width:30px; height:30px; cursor:pointer; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .smg-counter-btn:hover { border-color:var(--accent); background:var(--bg-card); }
 .smg-total { font-family:var(--mono); font-size:22px; color:var(--accent); font-weight:bold; min-width:60px; }
 .smg-log-entry { font-family:var(--mono); font-size:10px; color:var(--text-dim); border-bottom:1px solid var(--border); padding:4px 0; line-height:1.5; }
-.smg-save-btn { background:var(--accent); border:none; color:#141210; font-family:var(--heading); font-size:13px; letter-spacing:1px; padding:6px 14px; border-radius:3px; cursor:pointer; margin-top:8px; width:100%; }
+.smg-save-btn { background:var(--accent); border:none; color:#0A0A0C; font-family:var(--heading); font-size:13px; letter-spacing:1px; padding:6px 14px; border-radius:14px; cursor:pointer; margin-top:8px; width:100%; }
 .smg-save-btn:hover { opacity:.85; }
 
 /* ── CAMERA MODAL ── */
-.camera-container { position:relative; background:#000; border-radius:4px; overflow:hidden; margin-bottom:16px; }
+.camera-container { position:relative; background:#000; border-radius:14px; overflow:hidden; margin-bottom:16px; }
 #cameraFeed { width:100%; display:block; max-height:65vh; object-fit:contain; background:#000; }
 .camera-overlay { position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; }
 
 /* Portrait scan frame — tall rectangle suits instrument labels & headstocks */
 .scan-frame {
   width:60%; max-width:280px; aspect-ratio:3/4;
-  border:2px solid var(--accent); border-radius:4px;
+  border:2px solid var(--accent); border-radius:14px;
   box-shadow:0 0 0 2000px rgba(0,0,0,0.5); position:relative;
 }
 /* Landscape scan frame override */
@@ -341,44 +357,44 @@ select.filter-select {
 }
 .scan-frame-label {
   position:absolute; bottom:-24px; left:50%; transform:translateX(-50%);
-  font-family:var(--mono); font-size:9px; letter-spacing:2px;
+  font-family:var(--mono); font-size:9px; letter-spacing:0.3px;
   color:var(--accent); white-space:nowrap;
 }
 .scan-line { position:absolute; left:0; right:0; height:2px; background:var(--accent); box-shadow:0 0 10px var(--accent); animation:scanLine 2s linear infinite; }
 @keyframes scanLine { 0%{top:0} 100%{top:100%} }
 .camera-status { font-family:var(--mono); font-size:12px; text-align:center; color:var(--text-secondary); padding:8px; }
 #captureCanvas { display:none; }
-.ocr-result { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; padding:14px; font-family:var(--mono); font-size:12px; color:var(--text-secondary); max-height:120px; overflow-y:auto; white-space:pre-wrap; }
+.ocr-result { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:14px; font-family:var(--mono); font-size:12px; color:var(--text-secondary); max-height:120px; overflow-y:auto; white-space:pre-wrap; }
 
 /* ── IMPORT/EXPORT ── */
 .ie-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 @media (max-width:700px) { .ie-grid { grid-template-columns:1fr; } }
-.ie-card { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; padding:28px; }
-.ie-card h3 { font-family:var(--heading); font-size:22px; letter-spacing:2px; color:var(--accent); margin-bottom:8px; }
+.ie-card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px; }
+.ie-card h3 { font-family:var(--heading); font-size:22px; letter-spacing:0.3px; color:var(--accent); margin-bottom:8px; }
 .ie-card p { font-size:14px; color:var(--text-secondary); line-height:1.6; margin-bottom:20px; }
-.ie-drop-zone { border:2px dashed var(--border-bright); border-radius:4px; padding:40px 20px; text-align:center; cursor:pointer; transition:all .2s; color:var(--text-dim); font-size:14px; }
+.ie-drop-zone { border:2px dashed var(--border-bright); border-radius:14px; padding:40px 20px; text-align:center; cursor:pointer; transition:all .2s; color:var(--text-dim); font-size:14px; }
 .ie-drop-zone:hover, .ie-drop-zone.drag-over { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
 .ie-drop-icon { font-size:36px; margin-bottom:10px; }
 
 /* ── TOAST ── */
 .toast-container { position:fixed; bottom:24px; right:24px; z-index:999; display:flex; flex-direction:column; gap:8px; }
-.toast { background:var(--bg-panel); border:1px solid var(--border-bright); border-left:3px solid var(--accent); padding:12px 18px; border-radius:2px; font-size:14px; font-weight:600; animation:toastIn .3s ease; min-width:260px; display:flex; align-items:center; gap:10px; }
+.toast { background:var(--bg-panel); border:1px solid var(--border-bright); border-left:3px solid var(--accent); padding:12px 18px; border-radius:14px; font-size:14px; font-weight:600; animation:toastIn .3s ease; min-width:260px; display:flex; align-items:center; gap:10px; }
 .toast.error { border-left-color:var(--red); }
 .toast.success { border-left-color:var(--green); }
 @keyframes toastIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
 
 ::-webkit-scrollbar { width:6px; }
 ::-webkit-scrollbar-track { background:var(--bg-deep); }
-::-webkit-scrollbar-thumb { background:var(--border-bright); border-radius:3px; }
+::-webkit-scrollbar-thumb { background:var(--border-bright); border-radius:14px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--accent-dim); }
 
 /* ── COLLECTIBILITY BADGE ── */
 .collect-badge {
   display:inline-flex; align-items:center; gap:6px;
   font-family:var(--mono); font-size:11px; letter-spacing:1px;
-  padding:4px 10px; border-radius:2px; border:1px solid;
+  padding:4px 10px; border-radius:14px; border:1px solid;
 }
-.collect-high { color:#efaf7f; border-color:#c8845a; background:rgba(200,132,90,0.12); }
+.collect-high { color:#E8C766; border-color:#D4AF37; background:rgba(212,175,55,0.12); }
 .collect-med  { color:#5ba85b; border-color:#4a9a6a; background:rgba(74,154,106,0.1); }
 .collect-low  { color:var(--text-secondary); border-color:var(--border-bright); background:var(--bg-card); }
 </style>
@@ -388,7 +404,7 @@ select.filter-select {
 <!-- ── HEADER ── -->
 <header>
   <div class="header-row1">
-    <div class="logo">UNPLUGGED<span>INSTRUMENT VAULT  v1.0</span></div>
+    <div class="logo">UNPLUGGED<span>INSTRUMENT VAULT  v2.0</span></div>
     <div class="header-actions">
       <button class="btn btn-sm" onclick="openCamera()">📷 SCAN</button>
       <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ ADD</button>
@@ -410,7 +426,7 @@ select.filter-select {
   <div class="nav-tab active" data-screen="inventory" onclick="switchScreen('inventory',this)">VAULT</div>
   <div class="nav-tab" id="detailTab" style="display:none" data-screen="detail-screen" onclick="switchScreen('detail-screen',this)">DETAIL</div>
   <div class="nav-tab" data-screen="import-export" onclick="switchScreen('import-export',this)">IMPORT / EXPORT</div>
-  <div class="nav-tab" id="lazTab" data-screen="laz" onclick="switchScreen('laz',this)">⚡ LAZ MODE</div>
+  <div class="nav-tab" id="lazTab" data-screen="laz" onclick="switchScreen('laz',this)">🛠 TOOLS</div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
@@ -487,7 +503,7 @@ select.filter-select {
           <div class="ie-drop-icon">📂</div>
           <div>Drop .xlsx / .csv here<br><small>or click to browse</small></div>
         </div>
-        <div id="importPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
+        <div id="importPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:14px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
         <input type="file" id="importFile" accept=".xlsx,.csv" style="display:none" onchange="importFile(event)">
       </div>
       <div class="ie-card">
@@ -504,7 +520,7 @@ select.filter-select {
     </div>
 
     <!-- ── FULL BACKUP ── -->
-    <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+    <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px">
       🗄 FULL BACKUP
       <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">JSON — everything in one file</span>
     </div>
@@ -524,7 +540,7 @@ select.filter-select {
           <div class="ie-drop-icon">📄</div>
           <div>Drop .json backup here<br><small>or click to browse</small></div>
         </div>
-        <div id="backupPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
+        <div id="backupPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:14px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
         <input type="file" id="backupFile" accept=".json" style="display:none" onchange="loadBackupFile(event)">
         <div style="display:flex;gap:10px;margin-top:12px">
           <button class="btn" onclick="restoreBackupMerge()" style="flex:1" id="restoreMergeBtn" disabled>MERGE</button>
@@ -573,14 +589,14 @@ select.filter-select {
 
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!--  SCREEN: LAZ MODE                                      -->
+<!--  SCREEN: TOOLS                                          -->
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="screen laz-screen" id="screen-laz">
   <!-- HUB -->
   <div id="lazHub">
     <div style="padding:24px 24px 0;max-width:1000px;margin:0 auto">
-      <div style="font-family:var(--heading);font-size:14px;letter-spacing:3px;color:var(--text-dim);margin-bottom:4px">UNLOCKED FEATURES</div>
-      <div style="font-family:var(--heading);font-size:36px;letter-spacing:4px;color:var(--accent-bright)">LAZ MODE</div>
+      <div style="font-family:var(--heading);font-size:14px;letter-spacing:0.4px;color:var(--text-dim);margin-bottom:4px">INSTRUMENT TOOLKIT</div>
+      <div style="font-family:var(--heading);font-size:36px;letter-spacing:0.5px;color:var(--accent-bright)">TOOLS</div>
     </div>
     <div class="laz-hub">
       <div class="laz-card" onclick="showLazPanel('recorder')">
@@ -625,6 +641,12 @@ select.filter-select {
         <div class="laz-card-title">SETLIST BUILDER</div>
         <div class="laz-card-desc">Build and reorder setlists for gigs. Add BPM, key, and notes per song. Save multiple lists.</div>
       </div>
+      <div class="laz-card" onclick="showLazPanel('originals')">
+        <div class="laz-card-badge">SONGWRITING</div>
+        <div class="laz-card-icon">✍️</div>
+        <div class="laz-card-title">ORIGINALS</div>
+        <div class="laz-card-desc">Keep your own songs — lyrics, chords, riff ideas, whatever you're working on. Save and edit anytime.</div>
+      </div>
       <div class="laz-card" onclick="showLazPanel('practicetimer')">
         <div class="laz-card-badge">HABITS</div>
         <div class="laz-card-icon">⏱</div>
@@ -655,7 +677,7 @@ select.filter-select {
         <select id="recDeviceSelect" class="form-select" style="display:none;margin-top:12px;font-family:var(--mono);font-size:12px"></select>
       </div>
       <div class="recordings-list" id="recordingsList">
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px">RECORDINGS</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:10px">RECORDINGS</div>
         <div id="recordingsContainer" style="font-family:var(--mono);font-size:12px;color:var(--text-dim)">No recordings yet</div>
       </div>
     </div>
@@ -682,7 +704,7 @@ select.filter-select {
           <div class="tuner-freq" id="tunerFreq"></div>
         </div>
 
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px;text-align:center">GUITAR REFERENCE (E STANDARD)</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:10px;text-align:center">GUITAR REFERENCE (E STANDARD)</div>
         <div class="tuner-strings" id="tunerStrings">
           <button class="tuner-string-btn" onclick="tunerSetTarget('E2',82.41)">E2</button>
           <button class="tuner-string-btn" onclick="tunerSetTarget('A2',110.00)">A2</button>
@@ -718,16 +740,16 @@ select.filter-select {
     <div class="laz-content" id="learnSetupArea">
       <div class="learn-setup">
         <!-- MY SONGS banner — shown prominently at top when user has saved songs -->
-        <div id="mySongsBanner" style="display:none;margin-bottom:20px;padding:14px 18px;background:var(--accent-glow);border:1px solid var(--accent);border-radius:6px">
+        <div id="mySongsBanner" style="display:none;margin-bottom:20px;padding:14px 18px;background:var(--accent-glow);border:1px solid var(--accent);border-radius:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div>
-              <div style="font-family:var(--heading);font-size:18px;letter-spacing:2px;color:var(--accent-bright)">⭐ YOU HAVE SAVED SONGS</div>
+              <div style="font-family:var(--heading);font-size:18px;letter-spacing:0.3px;color:var(--accent-bright)">⭐ YOU HAVE SAVED SONGS</div>
               <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px" id="mySongsBannerCount"></div>
             </div>
             <button class="btn btn-sm btn-primary" onclick="scrollToMySongs()">SEE MY SONGS ↓</button>
           </div>
         </div>
-        <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent);margin-bottom:8px">SELECT DIFFICULTY</div>
+        <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent);margin-bottom:8px">SELECT DIFFICULTY</div>
         <div class="difficulty-grid">
           <div class="diff-card selected" onclick="selectDifficulty(0,this)">
             <div class="diff-icon">🌱</div>
@@ -752,14 +774,14 @@ select.filter-select {
         </div>
         <!-- MY SONGS (from Song Search vault) -->
         <div id="mySongsSection" style="display:none;margin-bottom:20px">
-          <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent-bright);margin-bottom:8px;display:flex;align-items:center;gap:10px">
+          <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent-bright);margin-bottom:8px;display:flex;align-items:center;gap:10px">
             ⭐ MY SAVED SONGS
             <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">FROM SONG SEARCH</span>
           </div>
           <div class="song-list" id="mySongList"></div>
           <div style="height:1px;background:var(--border);margin:16px 0"></div>
         </div>
-        <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent);margin-bottom:8px">BUILT-IN SONGS</div>
+        <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent);margin-bottom:8px">BUILT-IN SONGS</div>
         <div class="song-list" id="songList"></div>
         <div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <button class="btn btn-primary" id="startHeroBtn" onclick="startHero()">▶ START</button>
@@ -777,11 +799,11 @@ select.filter-select {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:12px">
           <button class="laz-back" onclick="stopTeacher()">← QUIT</button>
-          <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent-bright)" id="teacherSongTitle"></div>
+          <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent-bright)" id="teacherSongTitle"></div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">VIEW:</div>
-          <div style="display:flex;gap:2px;background:var(--bg-panel);border:1px solid var(--border);border-radius:3px;padding:2px">
+          <div style="display:flex;gap:2px;background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:2px">
             <button class="view-btn" id="tvbtn-horizontal" onclick="setTeacherView('horizontal')" title="Left to right (standard tab)">⇄</button>
             <button class="view-btn active" id="tvbtn-vertical" onclick="setTeacherView('vertical')" title="Top to bottom (scroll view)">⇅</button>
             <button class="view-btn" id="tvbtn-big" onclick="setTeacherView('big')" title="Large single note">◉</button>
@@ -819,14 +841,14 @@ select.filter-select {
 
         <!-- TAB DISPLAY (horizontal — standard left→right) -->
         <div id="tabViewHorizontal" style="display:none">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px">TABLATURE — PLAY THIS NOTE</div>
-          <div id="tabHorizDisplay" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:20px 24px;overflow-x:auto"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:10px">TABLATURE — PLAY THIS NOTE</div>
+          <div id="tabHorizDisplay" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px 24px;overflow-x:auto"></div>
         </div>
 
         <!-- TAB DISPLAY (vertical — top→bottom scroll) -->
         <div id="tabViewVertical" style="">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px">TABLATURE — TOP TO BOTTOM</div>
-          <div id="tabVertDisplay" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:20px 24px"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:10px">TABLATURE — TOP TO BOTTOM</div>
+          <div id="tabVertDisplay" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px 24px"></div>
         </div>
 
         <!-- BIG NOTE VIEW -->
@@ -835,17 +857,17 @@ select.filter-select {
         </div>
 
         <!-- ACTION PROMPT — big and obvious what to do -->
-        <div id="teacherActionPrompt" style="margin-top:16px;background:var(--bg-panel);border:2px solid var(--accent);border-radius:8px;padding:16px 20px;text-align:center">
-          <div style="font-family:var(--heading);font-size:13px;letter-spacing:3px;color:var(--text-dim);margin-bottom:6px">YOUR MOVE</div>
-          <div style="font-family:var(--heading);font-size:28px;letter-spacing:2px;color:var(--accent-bright)" id="teacherActionText">PLAY THIS NOTE ON YOUR GUITAR</div>
+        <div id="teacherActionPrompt" style="margin-top:16px;background:var(--bg-panel);border:2px solid var(--accent);border-radius:16px;padding:16px 20px;text-align:center">
+          <div style="font-family:var(--heading);font-size:13px;letter-spacing:0.4px;color:var(--text-dim);margin-bottom:6px">YOUR MOVE</div>
+          <div style="font-family:var(--heading);font-size:28px;letter-spacing:0.3px;color:var(--accent-bright)" id="teacherActionText">PLAY THIS NOTE ON YOUR GUITAR</div>
           <div style="font-family:var(--mono);font-size:12px;color:var(--text-secondary);margin-top:6px" id="teacherActionSub">The mic is listening — play and hold the note</div>
         </div>
 
         <!-- Current note instruction -->
-        <div id="teacherInstruction" style="margin-top:12px;background:var(--bg-card);border:1px solid var(--accent);border-radius:6px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div id="teacherInstruction" style="margin-top:12px;background:var(--bg-card);border:1px solid var(--accent);border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <div style="font-size:36px" id="teacherNoteEmoji">🎸</div>
           <div style="flex:1">
-            <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--accent-bright)" id="teacherNoteLabel">—</div>
+            <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent-bright)" id="teacherNoteLabel">—</div>
             <div style="font-family:var(--mono);font-size:12px;color:var(--text-secondary);margin-top:4px" id="teacherNoteDetail">—</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
@@ -856,7 +878,7 @@ select.filter-select {
         </div>
 
         <!-- Mic feedback bar -->
-        <div id="teacherMicBar" style="margin-top:8px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div id="teacherMicBar" style="margin-top:8px;background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <button id="teacherMicPauseBtn" onclick="toggleTeacherMic()"
             title="Pause or resume the microphone"
             style="background:none;border:1px solid var(--border);color:var(--text-secondary);font-size:18px;width:36px;height:36px;border-radius:50%;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center">
@@ -865,8 +887,8 @@ select.filter-select {
           <div style="font-size:20px;flex-shrink:0" id="teacherMicIcon">🎤</div>
           <div style="flex:1">
             <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px" id="teacherListeningLabel">LISTENING…</div>
-            <div style="height:8px;background:var(--border);border-radius:4px;margin-top:6px;overflow:hidden">
-              <div id="teacherMicLevel" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width .05s"></div>
+            <div style="height:8px;background:var(--border);border-radius:14px;margin-top:6px;overflow:hidden">
+              <div id="teacherMicLevel" style="height:100%;width:0%;background:var(--accent);border-radius:14px;transition:width .05s"></div>
             </div>
           </div>
           <div style="text-align:right">
@@ -876,7 +898,7 @@ select.filter-select {
         </div>
 
         <!-- Result feedback flash -->
-        <div id="teacherResult" style="display:none;margin-top:12px;text-align:center;padding:16px;border-radius:6px;font-family:var(--heading);font-size:36px;letter-spacing:3px"></div>
+        <div id="teacherResult" style="display:none;margin-top:12px;text-align:center;padding:16px;border-radius:16px;font-family:var(--heading);font-size:36px;letter-spacing:0.4px"></div>
       </div>
     </div>
 
@@ -902,27 +924,27 @@ select.filter-select {
 
       <!-- End of song results overlay -->
       <div id="heroResults" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.88);z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-        <div style="font-family:var(--heading);font-size:13px;letter-spacing:4px;color:var(--text-dim)">SONG COMPLETE</div>
-        <div style="font-family:var(--heading);font-size:56px;letter-spacing:4px;color:var(--accent)" id="heroResultScore">0</div>
+        <div style="font-family:var(--heading);font-size:13px;letter-spacing:0.5px;color:var(--text-dim)">SONG COMPLETE</div>
+        <div style="font-family:var(--heading);font-size:56px;letter-spacing:0.5px;color:var(--accent)" id="heroResultScore">0</div>
         <div style="display:flex;gap:24px;text-align:center">
           <div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">ACCURACY</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px">ACCURACY</div>
             <div style="font-family:var(--heading);font-size:28px;color:var(--accent-bright)" id="heroResultAcc">—</div>
           </div>
           <div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">BEST STREAK</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px">BEST STREAK</div>
             <div style="font-family:var(--heading);font-size:28px;color:var(--accent-bright)" id="heroResultStreak">0</div>
           </div>
           <div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">HITS</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px">HITS</div>
             <div style="font-family:var(--heading);font-size:28px;color:var(--green)" id="heroResultHits">0</div>
           </div>
           <div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px">MISSES</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px">MISSES</div>
             <div style="font-family:var(--heading);font-size:28px;color:var(--red)" id="heroResultMisses">0</div>
           </div>
         </div>
-        <div id="heroResultGrade" style="font-family:var(--heading);font-size:40px;letter-spacing:4px"></div>
+        <div id="heroResultGrade" style="font-family:var(--heading);font-size:40px;letter-spacing:0.5px"></div>
         <div style="display:flex;gap:12px;margin-top:8px">
           <button class="btn btn-primary" onclick="retryHero()" style="font-size:16px;padding:12px 28px">↺ PLAY AGAIN</button>
           <button class="btn" onclick="stopHero()" style="font-size:16px;padding:12px 28px">← BACK</button>
@@ -1104,11 +1126,11 @@ select.filter-select {
     <div class="laz-content">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div>
-          <div class="practice-timer-display" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;margin-bottom:16px">
+          <div class="practice-timer-display" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;margin-bottom:16px">
             <div class="practice-clock" id="practiceClock">00:00</div>
             <div class="practice-clock-sub">SESSION TIME</div>
             <div style="margin:16px 0">
-              <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:6px">DAILY GOAL</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:6px">DAILY GOAL</div>
               <div class="practice-goal-bar"><div class="practice-goal-fill" id="practiceGoalFill" style="width:0%"></div></div>
               <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:right;margin-top:4px" id="practiceGoalText">0 / 30 min</div>
             </div>
@@ -1135,10 +1157,59 @@ select.filter-select {
           </div>
         </div>
         <div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px">SESSION LOG</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:10px">SESSION LOG</div>
           <textarea class="form-textarea" id="practiceSessionNote" placeholder="What did you practice today?" style="min-height:60px;margin-bottom:8px"></textarea>
           <div class="practice-session-log" id="practiceSessionLog"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ORIGINALS PANEL ══ -->
+  <div id="lazPanelOriginals" style="display:none">
+    <div class="laz-header">
+      <button class="laz-back" onclick="showLazHub()">← BACK</button>
+      <div class="laz-panel-title">✍️ ORIGINALS</div>
+      <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="newOriginal()">＋ NEW SONG</button>
+    </div>
+    <div class="laz-content">
+      <div id="originalsEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text-dim)">
+        <div style="font-size:48px;margin-bottom:12px;opacity:.4">✍️</div>
+        <div style="font-family:var(--heading);font-size:20px;color:var(--text-secondary);margin-bottom:6px">No originals yet</div>
+        <div style="font-family:var(--mono);font-size:12px">Start a new song — lyrics, chords, riff ideas, anything.</div>
+      </div>
+      <div id="originalsStack" style="display:flex;flex-direction:column;gap:12px;max-width:800px;margin:0 auto"></div>
+    </div>
+  </div>
+
+  <!-- ══ ORIGINAL EDITOR (full view) ══ -->
+  <div id="lazPanelOriginalEdit" style="display:none">
+    <div class="laz-header">
+      <button class="laz-back" onclick="closeOriginalEditor()">← BACK</button>
+      <div class="laz-panel-title">✍️ EDIT SONG</div>
+      <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="deleteOriginal()">🗑 DELETE</button>
+    </div>
+    <div class="laz-content">
+      <div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">SONG TITLE</label>
+          <input class="form-input" id="originalTitleInput" placeholder="Untitled" style="font-family:var(--heading);font-size:20px" oninput="autosaveOriginal()">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="form-group">
+            <label class="form-label">KEY</label>
+            <input class="form-input" id="originalKeyInput" placeholder="e.g. E minor" oninput="autosaveOriginal()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">TUNING / CAPO</label>
+            <input class="form-input" id="originalTuningInput" placeholder="e.g. Standard, Capo 2" oninput="autosaveOriginal()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">LYRICS / CHORDS / NOTES</label>
+          <textarea class="form-textarea" id="originalBodyInput" placeholder="[Verse 1]&#10;Write your lyrics, chord shapes over the words, riff ideas — whatever helps you remember it." style="min-height:340px;font-family:var(--mono);font-size:13px;line-height:1.7" oninput="autosaveOriginal()"></textarea>
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:right" id="originalSavedStatus">Saved</div>
       </div>
     </div>
   </div>
@@ -1255,7 +1326,7 @@ select.filter-select {
           <label class="form-label">PHOTO URL</label>
           <input class="form-input" id="f-image" placeholder="https://... or leave blank to upload">
           <div id="f-image-preview" style="display:none;margin-top:8px">
-            <img id="f-image-preview-img" style="max-height:120px;border-radius:4px;border:1px solid var(--border)" alt="preview">
+            <img id="f-image-preview-img" style="max-height:120px;border-radius:14px;border:1px solid var(--border)" alt="preview">
             <button class="btn btn-sm btn-danger" style="margin-top:6px" onclick="clearModalImage()">REMOVE</button>
           </div>
           <label class="btn btn-sm" style="margin-top:6px;display:inline-block;cursor:pointer">
@@ -1300,7 +1371,7 @@ select.filter-select {
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-primary btn-sm" onclick="captureAndAnalyze()">📸 CAPTURE + ANALYZE</button>
         <!-- Frame orientation toggle -->
-        <div style="display:flex;gap:2px;background:var(--bg-panel);border:1px solid var(--border);border-radius:3px;padding:2px" title="Toggle scan frame orientation">
+        <div style="display:flex;gap:2px;background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:2px" title="Toggle scan frame orientation">
           <button class="view-btn active" id="frameBtnPortrait" onclick="setScanOrientation('portrait')" title="Portrait (tall — good for headstocks, labels)">▯</button>
           <button class="view-btn" id="frameBtnLandscape" onclick="setScanOrientation('landscape')" title="Landscape (wide — good for body stamps, serial plates)">▭</button>
         </div>
@@ -1310,7 +1381,7 @@ select.filter-select {
         </button>
       </div>
       <div id="ocrSection" style="display:none">
-        <div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:2px;margin-bottom:6px">AI ANALYSIS RESULT</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:0.3px;margin-bottom:6px">AI ANALYSIS RESULT</div>
         <div class="ocr-result" id="ocrResult"></div>
         <div id="ocrAddStatus" style="display:none;font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:10px">
           <span style="display:flex;align-items:center;gap:8px">
@@ -1347,16 +1418,16 @@ select.filter-select {
           Stored locally in your browser only.
         </div>
       </div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:14px">
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--accent);margin-bottom:8px">AI TEXT MODEL</div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:14px">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.3px;color:var(--accent);margin-bottom:8px">AI TEXT MODEL</div>
         <select class="form-input" id="textModelSelect" style="margin-bottom:6px;font-family:var(--mono);font-size:12px">
-          <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (best quality, auto-fallback)</option>
-          <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (faster, higher limits)</option>
-          <option value="gemma2-9b-it">gemma2-9b-it (lightweight)</option>
+          <option value="qwen/qwen3.6-27b">qwen/qwen3.6-27b (recommended, best quality)</option>
+          <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (strong general-purpose alt)</option>
+          <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (faster, higher limits)</option>
         </select>
         <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px;line-height:1.7">
           Free tier: ~500K tokens/day · resets midnight UTC · 6K tokens/min<br>
-          On rate limit, 70b auto-falls back to 8b-instant automatically.
+          On rate limit, your pick auto-falls back to gpt-oss-120b/20b automatically.
         </div>
       </div>
       <div style="margin-top:16px;display:flex;gap:10px">
@@ -1372,20 +1443,11 @@ select.filter-select {
 
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!--  LAZ MODE STYLES                                       -->
+<!--  TOOLS SCREEN STYLES                                   -->
 <!-- ══════════════════════════════════════════════════════ -->
 <style>
-/* ── LAZ MODE UNLOCK FLASH ── */
-@keyframes lazUnlock {
-  0%   { box-shadow: 0 0 0px var(--accent); }
-  50%  { box-shadow: 0 0 40px var(--accent-bright), 0 0 80px var(--accent); }
-  100% { box-shadow: 0 0 0px var(--accent); }
-}
-.laz-unlocked { animation: lazUnlock 1.2s ease; }
-
-/* ── LAZ NAV TAB (hidden until unlocked) ── */
-#lazTab { display:none; }
-#lazTab.laz-visible { display:block; color: var(--accent-bright) !important; }
+/* ── LAZ NAV TAB ── */
+#lazTab { color: var(--accent-bright) !important; }
 
 /* ── LAZ SCREEN ── */
 .laz-screen { padding: 0; }
@@ -1400,7 +1462,7 @@ select.filter-select {
 .laz-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius:16px;
   padding: 28px 24px;
   cursor: pointer;
   transition: all .25s;
@@ -1417,13 +1479,36 @@ select.filter-select {
 .laz-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
 .laz-card:hover::before { opacity: 1; }
 .laz-card-icon { font-size: 52px; margin-bottom: 16px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
-.laz-card-title { font-family: var(--heading); font-size: 28px; letter-spacing: 3px; color: var(--accent); margin-bottom: 8px; }
+.laz-card-title { font-family: var(--heading); font-size: 28px; letter-spacing:0.4px; color: var(--accent); margin-bottom: 8px; }
 .laz-card-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
 .laz-card-badge {
   position: absolute; top: 12px; right: 12px;
   font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
-  padding: 3px 8px; border-radius: 2px;
+  padding: 3px 8px; border-radius:14px;
   background: var(--accent-glow); border: 1px solid var(--accent-dim); color: var(--accent);
+}
+
+/* ── ORIGINALS: full-width card stack ── */
+.original-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: border-color .2s var(--ease), transform .15s var(--ease), background .2s var(--ease);
+  width: 100%;
+}
+.original-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+.original-card:active { transform: scale(.985); }
+.original-card-title {
+  font-family: var(--heading); font-size: 18px; letter-spacing:0.2px;
+  color: var(--text-primary); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.original-card-preview {
+  font-family: var(--mono); font-size: 12px; color: var(--text-secondary);
+  margin-top: 6px; line-height: 1.5;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .laz-header {
   display: flex; align-items: center; gap: 12px;
@@ -1435,33 +1520,33 @@ select.filter-select {
   display: flex; align-items: center; gap:6px;
   font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
   color: var(--text-secondary); cursor: pointer;
-  padding: 6px 12px; border: 1px solid var(--border); border-radius: 2px;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius:14px;
   transition: all .2s; background: none;
 }
 .laz-back:hover { border-color: var(--accent); color: var(--accent); }
-.laz-panel-title { font-family: var(--heading); font-size: 26px; letter-spacing: 3px; color: var(--accent-bright); }
+.laz-panel-title { font-family: var(--heading); font-size: 26px; letter-spacing:0.4px; color: var(--accent-bright); }
 .laz-content { padding: 24px; max-width: 900px; margin: 0 auto; }
 
 /* ── RECORDER ── */
 .recorder-wrap {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius:16px;
   padding: 32px; text-align: center;
 }
 .rec-meter-wrap {
   height: 60px; background: var(--bg-panel); border: 1px solid var(--border);
-  border-radius: 4px; margin: 20px 0; overflow: hidden; position: relative;
+  border-radius:14px; margin: 20px 0; overflow: hidden; position: relative;
 }
 .rec-meter-bar {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, #4a9a6a, var(--accent), #c0392b);
   transition: width 0.05s;
-  border-radius: 4px;
+  border-radius:14px;
 }
 .rec-time {
-  font-family: var(--mono); font-size: 48px; color: var(--accent); letter-spacing: 4px;
+  font-family: var(--mono); font-size: 48px; color: var(--accent); letter-spacing:0.5px;
   margin: 16px 0;
 }
-.rec-status { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 20px; }
+.rec-status { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing:0.3px; margin-bottom: 20px; }
 .rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); margin-right: 6px; }
 .rec-dot.active { animation: recBlink 1s infinite; }
 @keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
@@ -1470,7 +1555,7 @@ select.filter-select {
 .recording-item {
   display: flex; align-items: center; gap: 12px;
   background: var(--bg-panel); border: 1px solid var(--border);
-  border-radius: 4px; padding: 12px 16px; margin-bottom: 8px;
+  border-radius:14px; padding: 12px 16px; margin-bottom: 8px;
 }
 .recording-item audio { flex: 1; min-width: 0; height: 32px; }
 .recording-name { font-family: var(--mono); font-size: 11px; color: var(--accent); white-space: nowrap; }
@@ -1478,23 +1563,23 @@ select.filter-select {
 /* ── TUNER ── */
 .tuner-wrap { text-align: center; }
 .tuner-display {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius:16px;
   padding: 32px; margin-bottom: 20px; position: relative;
 }
 .tuner-note {
   font-family: var(--heading); font-size: 120px; line-height: 1;
-  color: var(--accent); letter-spacing: 4px;
+  color: var(--accent); letter-spacing:0.5px;
   transition: color .15s;
 }
 .tuner-note.in-tune { color: #4a9a6a; }
 .tuner-note.close   { color: var(--accent-bright); }
 .tuner-cents {
   font-family: var(--mono); font-size: 18px; color: var(--text-secondary);
-  margin-top: 8px; letter-spacing: 2px;
+  margin-top: 8px; letter-spacing:0.3px;
 }
 .tuner-needle-wrap {
   position: relative; height: 100px; margin: 16px 0;
-  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius:14px; overflow: hidden;
 }
 .tuner-scale {
   position: absolute; bottom: 12px; left: 0; right: 0;
@@ -1508,7 +1593,7 @@ select.filter-select {
   transform-origin: bottom center;
   transform: translateX(-50%) rotate(0deg);
   transition: transform 0.12s ease;
-  border-radius: 2px 2px 0 0;
+  border-radius:14px 2px 0 0;
   box-shadow: 0 0 8px var(--accent);
 }
 .tuner-needle.in-tune { background: #4a9a6a; box-shadow: 0 0 12px #4a9a6a; }
@@ -1523,33 +1608,33 @@ select.filter-select {
 }
 .tuner-string-btn {
   font-family: var(--mono); font-size: 14px; font-weight: bold;
-  padding: 10px 16px; border-radius: 3px;
+  padding: 10px 16px; border-radius:14px;
   background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary);
   cursor: pointer; transition: all .2s; min-width: 50px;
 }
 .tuner-string-btn:hover { border-color: var(--accent); color: var(--accent); }
-.tuner-string-btn.active { background: var(--accent); color: #141210; border-color: var(--accent); }
+.tuner-string-btn.active { background: var(--accent); color: #0A0A0C; border-color: var(--accent); }
 
 /* ── LEARN ── */
 .learn-setup {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 24px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius:16px; padding: 24px;
 }
 .difficulty-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 16px 0;
 }
 .diff-card {
-  background: var(--bg-panel); border: 2px solid var(--border); border-radius: 6px;
+  background: var(--bg-panel); border: 2px solid var(--border); border-radius:16px;
   padding: 16px; text-align: center; cursor: pointer; transition: all .2s;
 }
 .diff-card:hover { border-color: var(--accent-dim); }
 .diff-card.selected { border-color: var(--accent); background: var(--accent-glow); }
 .diff-card .diff-icon { font-size: 32px; margin-bottom: 8px; }
-.diff-card .diff-name { font-family: var(--heading); font-size: 18px; letter-spacing: 2px; color: var(--accent); }
+.diff-card .diff-name { font-family: var(--heading); font-size: 18px; letter-spacing:0.3px; color: var(--accent); }
 .diff-card .diff-desc { font-size: 12px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
 .song-list { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
 .song-item {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius:14px;
   padding: 12px 16px; cursor: pointer; transition: all .2s;
 }
 .song-item:hover { border-color: var(--accent); }
@@ -1566,7 +1651,7 @@ select.filter-select {
   background: #0a0806;
   position: relative;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius:16px;
 }
 .hero-lanes {
   flex: 1;
@@ -1602,19 +1687,19 @@ select.filter-select {
 .hero-note {
   position: absolute;
   width: 40px; height: 24px;
-  border-radius: 6px;
+  border-radius:16px;
   border: 2px solid rgba(255,255,255,0.3);
   transition: none;
   left: 50%; transform: translateX(-50%);
 }
-.hero-note.long-note { border-radius: 4px; height: auto; }
+.hero-note.long-note { border-radius:14px; height: auto; }
 .hero-hud {
   position: absolute; top: 0; left: 0; right: 0;
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px; background: rgba(0,0,0,0.7);
   z-index: 10;
 }
-.hero-score { font-family: var(--heading); font-size: 28px; letter-spacing: 3px; color: var(--accent); }
+.hero-score { font-family: var(--heading); font-size: 28px; letter-spacing:0.4px; color: var(--accent); }
 .hero-streak { font-family: var(--mono); font-size: 12px; color: var(--text-secondary); }
 .hero-progress {
   position: absolute; top: 48px; left: 0; right: 0; height: 4px;
@@ -1623,7 +1708,7 @@ select.filter-select {
 .hero-progress-bar { height: 100%; background: var(--accent); transition: width .5s; }
 .hero-feedback {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  font-family: var(--heading); font-size: 48px; letter-spacing: 4px;
+  font-family: var(--heading); font-size: 48px; letter-spacing:0.5px;
   pointer-events: none; opacity: 0; z-index: 20;
   text-shadow: 0 0 20px currentColor;
 }
@@ -1635,7 +1720,7 @@ select.filter-select {
 }
 .hero-feedback.show { animation: feedbackPop .8s ease forwards; }
 .hero-song-title {
-  font-family: var(--heading); font-size: 16px; letter-spacing: 2px; color: var(--text-secondary);
+  font-family: var(--heading); font-size: 16px; letter-spacing:0.3px; color: var(--text-secondary);
 }
 .hero-mic-status {
   font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 1px;
@@ -1647,17 +1732,17 @@ select.filter-select {
 .hero-controls button {
   font-family: var(--mono); font-size: 10px; padding: 4px 10px;
   background: rgba(0,0,0,0.6); border: 1px solid var(--border);
-  color: var(--text-secondary); border-radius: 2px; cursor: pointer;
+  color: var(--text-secondary); border-radius:14px; cursor: pointer;
 }
 .hero-controls button:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── SONG SEARCH ── */
 .song-search-bar { display:flex; gap:10px; margin-bottom:20px; }
 .song-search-bar input { flex:1; }
-.song-result-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+.song-result-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
 .song-result-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg-panel); }
 .song-result-tab {
-  font-family:var(--heading); font-size:15px; letter-spacing:2px;
+  font-family:var(--heading); font-size:15px; letter-spacing:0.3px;
   padding:12px 20px; cursor:pointer; color:var(--text-dim);
   border-bottom:2px solid transparent; transition:all .2s;
 }
@@ -1672,13 +1757,13 @@ select.filter-select {
 }
 .song-meta-pill {
   font-family:var(--mono); font-size:11px; letter-spacing:1px;
-  padding:4px 12px; border-radius:2px;
+  padding:4px 12px; border-radius:14px;
   background:var(--accent-glow); border:1px solid var(--accent-dim); color:var(--accent);
 }
 /* Chord chart grid */
 .chord-grid { display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; }
 .chord-box { text-align:center; }
-.chord-name { font-family:var(--heading); font-size:18px; letter-spacing:2px; color:var(--accent); margin-bottom:6px; }
+.chord-name { font-family:var(--heading); font-size:18px; letter-spacing:0.3px; color:var(--accent); margin-bottom:6px; }
 /* Lead sheet lyrics */
 .lead-sheet { font-family:var(--mono); font-size:13px; line-height:2.2; color:var(--text-secondary); white-space:pre-wrap; }
 .chord-marker { color:var(--accent-bright); font-weight:bold; font-size:12px; vertical-align:super; margin-right:2px; }
@@ -1686,7 +1771,7 @@ select.filter-select {
 .strum-pattern { display:flex; gap:4px; align-items:flex-end; flex-wrap:wrap; margin:16px 0; }
 .strum-beat {
   display:flex; flex-direction:column; align-items:center; gap:4px;
-  background:var(--bg-panel); border:1px solid var(--border); border-radius:4px;
+  background:var(--bg-panel); border:1px solid var(--border); border-radius:14px;
   padding:8px 12px; min-width:44px;
 }
 .strum-arrow { font-size:24px; line-height:1; }
@@ -1700,21 +1785,21 @@ select.filter-select {
 .search-history { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
 .history-chip {
   font-family:var(--mono); font-size:10px; padding:4px 10px;
-  background:var(--bg-card); border:1px solid var(--border); border-radius:2px;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
   color:var(--text-secondary); cursor:pointer; transition:all .2s;
 }
 .history-chip:hover { border-color:var(--accent); color:var(--accent); }
 
 /* ── METRONOME ── */
-.metro-bpm-display { font-family:var(--heading); font-size:96px; letter-spacing:4px; color:var(--accent); text-align:center; line-height:1; }
-.metro-bpm-label { font-family:var(--mono); font-size:11px; color:var(--text-dim); text-align:center; letter-spacing:3px; margin-bottom:20px; }
+.metro-bpm-display { font-family:var(--heading); font-size:96px; letter-spacing:0.5px; color:var(--accent); text-align:center; line-height:1; }
+.metro-bpm-label { font-family:var(--mono); font-size:11px; color:var(--text-dim); text-align:center; letter-spacing:0.4px; margin-bottom:20px; }
 .metro-pendulum-wrap { height:160px; position:relative; margin:0 auto; width:120px; }
 .metro-pendulum {
   position:absolute; bottom:0; left:50%;
   width:4px; height:140px;
   background:linear-gradient(to top, var(--accent), var(--accent-dim));
   transform-origin:bottom center; transform:translateX(-50%) rotate(0deg);
-  border-radius:2px; transition:transform 0s;
+  border-radius:14px; transition:transform 0s;
 }
 .metro-pendulum-bob {
   position:absolute; top:-2px; left:50%; transform:translateX(-50%);
@@ -1730,12 +1815,12 @@ select.filter-select {
 .metro-controls { display:flex; gap:10px; justify-content:center; margin:20px 0; flex-wrap:wrap; }
 .metro-bpm-slider { width:100%; max-width:400px; display:block; margin:0 auto 12px; accent-color:var(--accent); }
 .metro-tap-btn {
-  font-family:var(--heading); font-size:20px; letter-spacing:3px;
+  font-family:var(--heading); font-size:20px; letter-spacing:0.4px;
   padding:20px 40px; border:2px solid var(--accent); background:var(--accent-glow);
-  color:var(--accent); cursor:pointer; border-radius:4px; transition:all .1s;
+  color:var(--accent); cursor:pointer; border-radius:14px; transition:all .1s;
   user-select:none;
 }
-.metro-tap-btn:active { background:var(--accent); color:#141210; transform:scale(0.97); }
+.metro-tap-btn:active { background:var(--accent); color:#0A0A0C; transform:scale(0.97); }
 .metro-beats { display:flex; gap:8px; justify-content:center; margin:16px 0; }
 .metro-beat-dot {
   width:16px; height:16px; border-radius:50%;
@@ -1747,11 +1832,11 @@ select.filter-select {
 /* ── CHORD DICTIONARY ── */
 .chord-search-wrap { display:flex; gap:10px; margin-bottom:16px; }
 .chord-result-area { display:flex; flex-wrap:wrap; gap:20px; }
-.chord-detail-box { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:20px; min-width:200px; text-align:center; }
-.chord-detail-name { font-family:var(--heading); font-size:32px; letter-spacing:3px; color:var(--accent); margin-bottom:4px; }
+.chord-detail-box { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:20px; min-width:200px; text-align:center; }
+.chord-detail-name { font-family:var(--heading); font-size:32px; letter-spacing:0.4px; color:var(--accent); margin-bottom:4px; }
 .chord-detail-full { font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:16px; letter-spacing:1px; }
 .chord-voicing-selector { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:12px; }
-.voicing-btn { font-family:var(--mono); font-size:10px; padding:4px 10px; background:var(--bg-panel); border:1px solid var(--border); color:var(--text-secondary); border-radius:2px; cursor:pointer; transition:all .2s; }
+.voicing-btn { font-family:var(--mono); font-size:10px; padding:4px 10px; background:var(--bg-panel); border:1px solid var(--border); color:var(--text-secondary); border-radius:14px; cursor:pointer; transition:all .2s; }
 .voicing-btn:hover, .voicing-btn.active { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
 .chord-finger-labels { display:flex; justify-content:space-between; padding:0 6px; margin-top:6px; }
 .chord-finger-label { font-family:var(--mono); font-size:9px; color:var(--text-dim); width:20px; text-align:center; }
@@ -1759,12 +1844,12 @@ select.filter-select {
 /* ── SETLIST BUILDER ── */
 .setlist-wrap { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 @media(max-width:700px) { .setlist-wrap { grid-template-columns:1fr; } }
-.setlist-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:16px; }
-.setlist-panel-title { font-family:var(--heading); font-size:18px; letter-spacing:2px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+.setlist-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:16px; }
+.setlist-panel-title { font-family:var(--heading); font-size:18px; letter-spacing:0.3px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px; }
 .setlist-item {
   display:flex; align-items:center; gap:10px;
   background:var(--bg-panel); border:1px solid var(--border);
-  border-radius:4px; padding:10px 12px; margin-bottom:6px;
+  border-radius:14px; padding:10px 12px; margin-bottom:6px;
   cursor:grab; user-select:none; transition:all .15s;
 }
 .setlist-item:hover { border-color:var(--accent-dim); }
@@ -1774,17 +1859,17 @@ select.filter-select {
 .setlist-item-num { font-family:var(--mono); font-size:10px; color:var(--accent); width:20px; flex-shrink:0; }
 .setlist-item-name { font-family:var(--heading); font-size:16px; letter-spacing:1px; color:var(--text-primary); flex:1; }
 .setlist-item-meta { font-family:var(--mono); font-size:10px; color:var(--text-dim); }
-.setlist-item-remove { background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; padding:2px 6px; border-radius:2px; }
+.setlist-item-remove { background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; padding:2px 6px; border-radius:14px; }
 .setlist-item-remove:hover { color:var(--red); background:rgba(192,57,43,0.1); }
 .setlist-input-row { display:flex; gap:8px; margin-bottom:12px; }
-.setlist-new-item { background:var(--bg-panel); border:1px solid var(--border-bright); border-radius:4px; padding:12px; margin-bottom:8px; }
+.setlist-new-item { background:var(--bg-panel); border:1px solid var(--border-bright); border-radius:14px; padding:12px; margin-bottom:8px; }
 
 /* ── PRACTICE TIMER ── */
 .practice-timer-display { text-align:center; padding:32px; }
-.practice-clock { font-family:var(--heading); font-size:80px; letter-spacing:4px; color:var(--accent); line-height:1; }
-.practice-clock-sub { font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:3px; margin-top:4px; }
-.practice-goal-bar { height:10px; background:var(--border); border-radius:5px; margin:20px 0; overflow:hidden; }
-.practice-goal-fill { height:100%; background:linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius:5px; transition:width .5s; }
+.practice-clock { font-family:var(--heading); font-size:80px; letter-spacing:0.5px; color:var(--accent); line-height:1; }
+.practice-clock-sub { font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:0.4px; margin-top:4px; }
+.practice-goal-bar { height:10px; background:var(--border); border-radius:10px; margin:20px 0; overflow:hidden; }
+.practice-goal-fill { height:100%; background:linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius:10px; transition:width .5s; }
 .practice-session-log { max-height:260px; overflow-y:auto; }
 .practice-log-row {
   display:flex; align-items:center; gap:12px;
@@ -1795,16 +1880,16 @@ select.filter-select {
 .practice-log-duration { font-family:var(--heading); font-size:18px; color:var(--accent); white-space:nowrap; }
 .practice-log-note { flex:1; color:var(--text-secondary); font-size:13px; }
 .practice-streak { font-family:var(--heading); font-size:48px; color:var(--accent-bright); text-align:center; }
-.practice-streak-label { font-family:var(--mono); font-size:10px; color:var(--text-dim); text-align:center; letter-spacing:2px; }
+.practice-streak-label { font-family:var(--mono); font-size:10px; color:var(--text-dim); text-align:center; letter-spacing:0.3px; }
 .practice-stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0; }
-.practice-stat { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; padding:14px; text-align:center; }
+.practice-stat { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:14px; text-align:center; }
 .practice-stat-val { font-family:var(--heading); font-size:28px; color:var(--accent); }
 .practice-stat-lbl { font-family:var(--mono); font-size:9px; color:var(--text-dim); letter-spacing:1px; margin-top:2px; }
 
 /* ── PLAIN NOTE CALLOUT (learn mode) ── */
 .plain-note-callout {
   background:var(--bg-card); border:2px solid var(--accent);
-  border-radius:8px; padding:20px 24px;
+  border-radius:16px; padding:20px 24px;
   display:flex; align-items:center; gap:20px; flex-wrap:wrap;
   margin-bottom:16px;
 }
@@ -1818,29 +1903,12 @@ select.filter-select {
 .plain-note-row span { color:var(--accent-bright); font-weight:bold; }
 .count-in-display {
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  background:rgba(20,18,16,0.92); z-index:50; border-radius:8px;
+  background:rgba(20,18,16,0.92); z-index:50; border-radius:16px;
   font-family:var(--heading); font-size:120px; color:var(--accent);
   animation:countPop .5s ease;
 }
 @keyframes countPop { 0%{transform:scale(1.5);opacity:0} 100%{transform:scale(1);opacity:1} }
 </style>
-
-<!-- ══════════════════════════════════════════════════════ -->
-<!--  LAZ MODE MODAL (main hub)                            -->
-<!-- ══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="lazUnlockModal">
-  <div class="modal" style="max-width:420px;text-align:center">
-    <div class="modal-body" style="padding:40px">
-      <div style="font-size:64px;margin-bottom:16px">🔓</div>
-      <div style="font-family:var(--heading);font-size:32px;letter-spacing:4px;color:var(--accent-bright);margin-bottom:12px">LAZ MODE</div>
-      <div style="font-family:var(--mono);font-size:12px;color:var(--text-secondary);line-height:1.8;margin-bottom:24px">
-        UNLOCKED<br>
-        <span style="color:var(--text-dim);font-size:10px">RECORD · TUNE · LEARN · PLAY</span>
-      </div>
-      <button class="btn btn-primary" onclick="activateLazMode()" style="width:100%;font-size:16px;padding:14px">ENTER LAZ MODE</button>
-    </div>
-  </div>
-</div>
 
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
@@ -1867,24 +1935,110 @@ function getApiKey() {
 }
 
 function getTextModel() {
-  return localStorage.getItem('unplugged_text_model') || 'llama-3.3-70b-versatile';
+  return localStorage.getItem('unplugged_text_model') || 'qwen/qwen3.6-27b';
+}
+
+// Qwen3 is a reasoning model — even with reasoning_effort:'none' it can still
+// leak a <think>...</think> scratchpad or a "Thinking Process:" preamble into
+// the response. Strip that out before it ever reaches readable content (tab,
+// lyrics, teacher scripts, descriptions, etc).
+function stripThinking(text) {
+  if (!text) return text;
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/^\s*(Thinking Process:|Let me think[^\n]*|Okay, (?:the user|so)[^\n]*)\n+/i, '')
+    .trim();
+}
+
+// Sanitise a raw Groq text response before JSON.parse():
+// 1. Strip markdown fences
+// 2. Extract the outermost {...} or [...] block (whichever comes first)
+// 3. Replace literal newlines/tabs/CR INSIDE string values with proper \n \t \r escapes
+//    (Groq models sometimes emit raw line breaks inside "lyrics"/"tab" fields)
+// 4. Fix invalid backslash escapes so they don't blow up JSON.parse
+// 5. Strip other stray control characters
+// Shared by song search, chord dictionary, and any other structured Groq call.
+function sanitiseJsonResponse(raw) {
+  let s = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  // Extract the outermost JSON block — object or array, whichever appears first
+  const braceStart = s.indexOf('{');
+  const bracketStart = s.indexOf('[');
+  let start, endChar;
+  if (braceStart === -1 && bracketStart === -1) throw new Error('No JSON found in response');
+  if (bracketStart === -1 || (braceStart !== -1 && braceStart < bracketStart)) {
+    start = braceStart; endChar = '}';
+  } else {
+    start = bracketStart; endChar = ']';
+  }
+  const end = s.lastIndexOf(endChar);
+  if (end === -1 || end < start) throw new Error('No JSON found in response');
+  s = s.slice(start, end + 1);
+
+  const VALID_AFTER_BACKSLASH = new Set(['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']);
+  let result = '';
+  let inString = false;
+  let i = 0;
+
+  while (i < s.length) {
+    const ch = s[i];
+
+    if (!inString) {
+      if (ch === '"') { inString = true; result += ch; i++; continue; }
+      result += ch; i++;
+      continue;
+    }
+
+    if (ch === '"') { inString = false; result += ch; i++; continue; }
+
+    if (ch === '\\') {
+      const next = s[i + 1];
+      if (!next) { result += '\\\\'; i++; continue; }
+      if (VALID_AFTER_BACKSLASH.has(next)) {
+        if (next === 'u') {
+          const hex = s.slice(i + 2, i + 6);
+          if (/^[0-9a-fA-F]{4}$/.test(hex)) { result += '\\u' + hex; i += 6; continue; }
+          result += '\\\\'; i++; continue;
+        }
+        result += ch + next; i += 2; continue;
+      }
+      result += '\\\\'; i++;
+      continue;
+    }
+
+    if (ch === '\n') { result += '\\n'; i++; continue; }
+    if (ch === '\r') { result += '\\r'; i++; continue; }
+    if (ch === '\t') { result += '\\t'; i++; continue; }
+    const code = ch.charCodeAt(0);
+    if (code < 0x20) { i++; continue; }
+
+    result += ch; i++;
+  }
+
+  return result;
 }
 
 async function grokText(prompt) {
   const key = getApiKey();
   if (!key) throw new Error('No API key set. Click ⚙ Settings to add your Groq key.');
   const preferred = getTextModel();
-  const fallback = preferred === 'llama-3.1-8b-instant' ? 'gemma2-9b-it' : 'llama-3.1-8b-instant';
+  const fallback = preferred === 'openai/gpt-oss-120b' ? 'openai/gpt-oss-20b' : 'openai/gpt-oss-120b';
   const models = preferred === fallback ? [preferred] : [preferred, fallback];
   let lastError = '';
   for (const model of models) {
     const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], max_tokens: 1200 })
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1200,
+        reasoning_effort: 'none',
+        reasoning_format: 'hidden'
+      })
     });
     const data = await resp.json();
-    if (!data.error) return data.choices?.[0]?.message?.content || '';
+    if (!data.error) return stripThinking(data.choices?.[0]?.message?.content || '');
     const msg = data.error.message || JSON.stringify(data.error);
     const is429 = resp.status === 429 || msg.includes('rate_limit') || msg.toLowerCase().includes('rate limit');
     if (is429) {
@@ -1901,21 +2055,31 @@ async function grokText(prompt) {
 async function grokVision(prompt, base64Image, mimeType='image/jpeg') {
   const key = getApiKey();
   if (!key) throw new Error('No API key set.');
-  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      messages: [{ role: 'user', content: [
-        { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } },
-        { type: 'text', text: prompt }
-      ]}],
-      max_tokens: 800
-    })
-  });
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  return data.choices?.[0]?.message?.content || '';
+  // Vision fallback chain — llama-4-scout is the strongest vision model on Groq,
+  // gpt-oss-120b is the current backup (older vision-preview models were decommissioned).
+  const visionModels = ['meta-llama/llama-4-scout-17b-16e-instruct', 'openai/gpt-oss-120b'];
+  let lastError = '';
+  for (const model of visionModels) {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: [
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } },
+          { type: 'text', text: prompt }
+        ]}],
+        max_tokens: 800
+      })
+    });
+    const data = await resp.json();
+    if (!data.error) return stripThinking(data.choices?.[0]?.message?.content || '');
+    const msg = data.error.message || JSON.stringify(data.error);
+    const isModelGone = msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('decommissioned');
+    if (isModelGone) { lastError = msg; continue; }
+    throw new Error(msg);
+  }
+  throw new Error(lastError || 'No vision model available.');
 }
 
 // ══════════════════════════════════════════
@@ -2009,7 +2173,14 @@ function appHandleBack() {
     return true;
   }
 
-  // ── 3. Inside a Laz panel (not the hub) → go to hub ──
+  // ── 3. Inside the Originals editor → go back to the Originals list ──
+  const originalEdit = document.getElementById('lazPanelOriginalEdit');
+  if (originalEdit && originalEdit.style.display !== 'none') {
+    closeOriginalEditor();
+    return true;
+  }
+
+  // ── 4. Inside a Laz panel (not the hub) → go to hub ──
   const lazScreen = document.getElementById('screen-laz');
   const lazHub    = document.getElementById('lazHub');
   if (lazScreen && lazScreen.classList.contains('active')) {
@@ -2311,7 +2482,7 @@ function showDetail(id) {
           ${spec('VALUE', g.value ? '$'+Number(g.value).toLocaleString() : '')}
           ${spec('PURCHASE PRICE', g.purchase_price ? '$'+Number(g.purchase_price).toLocaleString() : '')}
         </div>
-        ${g.notes ? `<div class="detail-description" style="font-size:13px"><strong style="color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:2px">NOTES</strong><br><br>${g.notes}</div>` : ''}
+        ${g.notes ? `<div class="detail-description" style="font-size:13px"><strong style="color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:0.3px">NOTES</strong><br><br>${g.notes}</div>` : ''}
         <div class="detail-actions">
           <button class="btn" onclick="openEditModal('${g.id}')">✏ EDIT</button>
           <button class="btn" id="detailAiUpdateBtn" onclick="aiUpdateFromDetail('${g.id}')" title="${g.ai_specs_fetched ? 'Specs already fetched — click to refresh' : 'Auto-fill specs from AI'}">${g.ai_specs_fetched ? '✓ AI SPECS' : '🤖 AI UPDATE'}</button>
@@ -2328,7 +2499,7 @@ function showDetail(id) {
     <div style="margin-top:24px">
       <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
         <span>AI INSTRUMENT PROFILE</span>
-        <button id="aiDescRefreshBtn" onclick="refreshAIDescription('${g.id}')" style="background:none;border:1px solid var(--border);color:var(--text-dim);font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:2px;cursor:pointer;${g.ai_description ? '' : 'display:none'}">↺ REFRESH</button>
+        <button id="aiDescRefreshBtn" onclick="refreshAIDescription('${g.id}')" style="background:none;border:1px solid var(--border);color:var(--text-dim);font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:14px;cursor:pointer;${g.ai_description ? '' : 'display:none'}">↺ REFRESH</button>
       </div>
       <div class="detail-description" id="aiDesc">
         ${g.ai_description
@@ -2753,10 +2924,10 @@ Keep it to 4–5 paragraphs. Write in an authoritative, passionate tone befittin
     const refreshBtn = document.getElementById('aiDescRefreshBtn');
     if (refreshBtn) { refreshBtn.style.display = ''; }
   } catch(e) {
-    el.innerHTML = `<div style="color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:8px;border:1px solid var(--border);border-radius:4px">
+    el.innerHTML = `<div style="color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:8px;border:1px solid var(--border);border-radius:14px">
       <div style="color:var(--red);margin-bottom:6px">⚠ Could not load profile</div>
       <div style="margin-bottom:8px;line-height:1.5">${e.message}</div>
-      <button onclick="fetchAIDescription(inventory.find(x=>x.id==='${g.id}'))" style="background:var(--bg-panel);border:1px solid var(--border);color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:4px 10px;cursor:pointer;border-radius:2px">↺ RETRY</button>
+      <button onclick="fetchAIDescription(inventory.find(x=>x.id==='${g.id}'))" style="background:var(--bg-panel);border:1px solid var(--border);color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:4px 10px;cursor:pointer;border-radius:14px">↺ RETRY</button>
     </div>`;
   }
 }
@@ -3308,7 +3479,7 @@ function parseCSV(text) {
 function exportFullBackup() {
   const today = new Date().toISOString().slice(0,10);
   const backup = {
-    version: '1.0',
+    version: '2.0',
     date: today,
     inventory,
     api_key:    localStorage.getItem('unplugged_api_key') || '',
@@ -3319,6 +3490,7 @@ function exportFullBackup() {
     song_cache: JSON.parse(localStorage.getItem('unplugged_song_cache') || '{}'),
     learn_vault:JSON.parse(localStorage.getItem('unplugged_learn_vault') || '[]'),
     setlists:   JSON.parse(localStorage.getItem('unplugged_setlists') || '{}'),
+    originals:  JSON.parse(localStorage.getItem('unplugged_originals') || '[]'),
   };
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], {type:'application/json'});
@@ -3355,9 +3527,10 @@ function handleBackupFileRead(file) {
       const count = (data.inventory || []).length;
       const hasKey = !!data.api_key;
       const hasNotes = !!(data.notes && Object.keys(data.notes).length);
+      const originalsCount = (data.originals || []).length;
       const preview = document.getElementById('backupPreview');
       preview.style.display = 'block';
-      preview.textContent = `✓ ${count} instrument${count !== 1 ? 's' : ''}${hasKey ? ' + API key' : ''}${hasNotes ? ' + notes' : ''} ready to restore`;
+      preview.textContent = `✓ ${count} instrument${count !== 1 ? 's' : ''}${hasKey ? ' + API key' : ''}${hasNotes ? ' + notes' : ''}${originalsCount ? ` + ${originalsCount} original song${originalsCount !== 1 ? 's' : ''}` : ''} ready to restore`;
       document.getElementById('restoreMergeBtn').disabled   = false;
       document.getElementById('restoreReplaceBtn').disabled = false;
     } catch(_) {
@@ -3384,6 +3557,15 @@ function restoreBackupMerge() {
   if (_pendingBackup.notes) localStorage.setItem('unplugged_notes', JSON.stringify(_pendingBackup.notes));
   if (_pendingBackup.learn_vault) localStorage.setItem('unplugged_learn_vault', JSON.stringify(_pendingBackup.learn_vault));
   if (_pendingBackup.setlists) localStorage.setItem('unplugged_setlists', JSON.stringify(_pendingBackup.setlists));
+  if (_pendingBackup.originals) {
+    const incomingOriginals = _pendingBackup.originals || [];
+    incomingOriginals.forEach(song => {
+      const idx = originalSongs.findIndex(s => s.id === song.id);
+      if (idx >= 0) originalSongs[idx] = { ...originalSongs[idx], ...song };
+      else originalSongs.push({ ...song, id: song.id || uid() });
+    });
+    saveOriginals();
+  }
   save(); renderInventory(); updateApiStatus();
   showToast(`Merged: ${added} added, ${updated} updated`, 'success');
   _pendingBackup = null;
@@ -3399,6 +3581,10 @@ function restoreBackupReplace() {
   if (_pendingBackup.notes) localStorage.setItem('unplugged_notes', JSON.stringify(_pendingBackup.notes));
   if (_pendingBackup.learn_vault) localStorage.setItem('unplugged_learn_vault', JSON.stringify(_pendingBackup.learn_vault));
   if (_pendingBackup.setlists) localStorage.setItem('unplugged_setlists', JSON.stringify(_pendingBackup.setlists));
+  if (_pendingBackup.originals) {
+    originalSongs = (_pendingBackup.originals || []).map(s => ({ ...s, id: s.id || uid() }));
+    saveOriginals();
+  }
   save(); renderInventory(); updateApiStatus();
   showToast(`Restored ${inventory.length} instruments from backup`, 'success');
   _pendingBackup = null;
@@ -3447,7 +3633,7 @@ function exportInsurancePDF() {
       body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
       h1 { font-size: 24px; margin-bottom: 4px; }
       .sub { color: #555; font-size: 13px; margin-bottom: 24px; }
-      .summary { background: #f5f5f5; padding: 16px; border-radius: 4px; margin-bottom: 24px; display: flex; gap: 40px; }
+      .summary { background: #f5f5f5; padding: 16px; border-radius:14px; margin-bottom: 24px; display: flex; gap: 40px; }
       .summary div { font-size: 14px; }
       .summary strong { font-size: 20px; display: block; }
       table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -3476,7 +3662,7 @@ function exportInsurancePDF() {
       </tbody>
     </table>
     <p style="margin-top:24px;font-size:11px;color:#888">
-      Generated by UNPLUGGED v1.0 · ${date} · For insurance purposes only.
+      Generated by UNPLUGGED v2.0 · ${date} · For insurance purposes only.
     </p>
     <script>window.onload=()=>window.print()<\/script>
   </body></html>`;
@@ -3808,56 +3994,15 @@ history.replaceState({ type: 'app-root' }, '', location.pathname + location.sear
 
 
 // ══════════════════════════════════════════════════════════
-//  LAZ MODE — UNLOCK (5 clicks on gear icon)
+//  GEAR BUTTON — always opens Settings. TOOLS is a normal,
+//  permanently-visible tab now — no unlock gimmick.
 // ══════════════════════════════════════════════════════════
-let gearClickCount = 0;
-let gearClickTimer = null;
-let lazModeActive = localStorage.getItem('unplugged_laz') === '1';
-
 function gearClick() {
-  gearClickCount++;
-  clearTimeout(gearClickTimer);
-  gearClickTimer = setTimeout(() => {
-    // Single click (or fewer than 5) — open Settings as normal
-    if (gearClickCount < 5) openModal('settingsModal');
-    gearClickCount = 0;
-  }, 600);
-
-  if (gearClickCount >= 5) {
-    clearTimeout(gearClickTimer);
-    gearClickCount = 0;
-    if (!lazModeActive) {
-      // Never unlocked — show the unlock screen
-      openModal('lazUnlockModal');
-    } else {
-      // Already unlocked — reveal the tab for this session and jump in
-      document.getElementById('lazTab').classList.add('laz-visible');
-      switchToLaz();
-      showToast('⚡ Laz Mode', 'success');
-    }
-  }
-}
-
-function activateLazMode() {
-  lazModeActive = true;
-  localStorage.setItem('unplugged_laz', '1');
-  closeModal('lazUnlockModal');
-  document.getElementById('lazTab').classList.add('laz-visible');
-  document.getElementById('gearBtn').classList.add('laz-unlocked');
-  setTimeout(() => document.getElementById('gearBtn').classList.remove('laz-unlocked'), 1400);
-  switchToLaz();
-  showToast('⚡ Laz Mode unlocked!', 'success');
-}
-
-function switchToLaz() {
-  // Show the tab for this session (doesn't persist across restarts)
-  document.getElementById('lazTab').classList.add('laz-visible');
-  switchScreen('laz', document.getElementById('lazTab'));
-  showLazHub();
+  openModal('settingsModal');
 }
 
 // ── LAZ NAV ──
-const LAZ_PANELS = ['recorder','tuner','learn','songsearch','metronome','chorddict','setlist','practicetimer'];
+const LAZ_PANELS = ['recorder','tuner','learn','songsearch','metronome','chorddict','setlist','practicetimer','originals'];
 
 function showLazHub() {
   // Stop any running audio before leaving
@@ -3882,13 +4027,15 @@ function showLazHub() {
     const el = document.getElementById('lazPanel' + cap);
     if (el) el.style.display = 'none';
   });
+  const editEl = document.getElementById('lazPanelOriginalEdit');
+  if (editEl) editEl.style.display = 'none';
   document.getElementById('lazHub').style.display = 'block';
 }
 
 function showLazPanel(name) {
   // Hide hub and ALL other panels first
   document.getElementById('lazHub').style.display = 'none';
-  const LAZ_ALL = ['recorder','tuner','learn','songsearch','metronome','chorddict','setlist','practicetimer'];
+  const LAZ_ALL = ['recorder','tuner','learn','songsearch','metronome','chorddict','setlist','practicetimer','originals'];
   LAZ_ALL.forEach(p => {
     const el = document.getElementById('lazPanel' + p.charAt(0).toUpperCase() + p.slice(1));
     if (el && p !== name) el.style.display = 'none';
@@ -3896,6 +4043,8 @@ function showLazPanel(name) {
   const cap = name.charAt(0).toUpperCase() + name.slice(1);
   const panel = document.getElementById('lazPanel' + cap);
   if (panel) panel.style.display = 'block';
+  const editEl2 = document.getElementById('lazPanelOriginalEdit');
+  if (editEl2 && name !== 'originals') editEl2.style.display = 'none';
   if (name === 'learn') {
     // Always restore the setup area — it may be hidden from a previous session
     const setupArea = document.getElementById('learnSetupArea');
@@ -3913,16 +4062,10 @@ function showLazPanel(name) {
   if (name === 'practicetimer') initPracticeTimer();
   if (name === 'chorddict') initChordDict();
   if (name === 'songsearch') initSongSearch();
+  if (name === 'originals') initOriginals();
   // Push history so back button returns to the hub
   history.pushState({ type: 'laz-panel', name }, '', location.pathname + location.search);
 }
-
-// Init on load — Laz Mode tab is NEVER shown automatically.
-// If already unlocked, one gear click drops straight in.
-// If not unlocked, 5 rapid gear clicks triggers the unlock screen.
-window.addEventListener('DOMContentLoaded', () => {
-  // Intentionally do NOT restore the laz tab on load — hidden mode stays hidden.
-});
 
 // ══════════════════════════════════════════════════════════
 //  RECORDER
@@ -4204,7 +4347,7 @@ let heroMicCtx = null;
 let heroMicAnalyser = null;
 let heroDetectedFreq = 0;
 
-const LANE_COLORS = ['#c8845a','#4a9a6a','#5a8ac8','#c85a9a','#c8c84a','#9a5ac8'];
+const LANE_COLORS = ['#D4AF37','#4a9a6a','#5a8ac8','#c85a9a','#c8c84a','#9a5ac8'];
 const LANE_NAMES_6 = ['E2','A2','D3','G3','B3','E4'];
 const LANE_FREQS_6 = [82.41, 110, 146.83, 196, 246.94, 329.63];
 
@@ -4480,9 +4623,7 @@ function sendSongToLearn(slug) {
   console.log('[LEARN VAULT] Added:', learnEntry.name, '— total songs:', userLearnSongs.length);
   showToast(`✓ "${data.title}" added to Learn — ${notes.length} chord steps`, 'success');
 
-  // Navigate to learn panel — make sure Laz is active first
-  const lazTab = document.getElementById('lazTab');
-  if (lazTab) lazTab.classList.add('laz-visible');
+  // Jump straight to the Learn panel
   showLazPanel('learn');
 }
 
@@ -4517,7 +4658,7 @@ function renderSongList() {
             ${s.chordProgression ? `<div style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:2px">${s.chordProgression}</div>` : ''}
           </div>
           <button onclick="event.stopPropagation();removeFromLearnVault('${s.slug}')"
-            style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:2px;flex-shrink:0" title="Remove">✕</button>
+            style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:14px;flex-shrink:0" title="Remove">✕</button>
         </div>`).join('');
     } else {
       mySection.style.display = 'none';
@@ -4750,12 +4891,12 @@ function renderTabHorizontal(notes, currentIdx) {
 
       if (noteOnThisString) {
         cellContent = String(note.tab.fret);
-        cellColor = isCurrent ? '#141210' : isPlayed ? 'var(--text-dim)' : 'var(--accent-bright)';
+        cellColor = isCurrent ? '#0A0A0C' : isPlayed ? 'var(--text-dim)' : 'var(--accent-bright)';
         fw = 'bold';
       }
       if (isCurrent) {
-        bg = noteOnThisString ? 'var(--accent)' : 'rgba(200,132,90,0.12)';
-        cellColor = noteOnThisString ? '#141210' : 'var(--text-dim)';
+        bg = noteOnThisString ? 'var(--accent)' : 'rgba(212,175,55,0.12)';
+        cellColor = noteOnThisString ? '#0A0A0C' : 'var(--text-dim)';
       }
 
       html += `<span style="display:inline-flex;align-items:center;justify-content:center;width:${CELL_W}px;height:100%;
@@ -4810,7 +4951,7 @@ function renderTabVertical(notes, currentIdx) {
     const isPlayed  = windowStart + wi < currentIdx;
     html += `<div style="display:flex;align-items:center;gap:0;height:36px;margin-bottom:2px;
       background:${isCurrent ? 'var(--accent-glow)' : 'transparent'};
-      border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'};border-radius:3px">`;
+      border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'};border-radius:14px">`;
     html += `<span style="width:40px;font-size:10px;color:${isCurrent ? 'var(--accent)' : isPlayed ? 'var(--text-dim)' : 'var(--text-secondary)'};padding-left:4px">${note.noteName}</span>`;
     strings.forEach(s => {
       const hit = note.tab && note.tab.string === s.num;
@@ -4841,13 +4982,13 @@ function renderTabBig(note) {
       <div style="margin:24px 0;display:flex;justify-content:center;gap:24px">
         <!-- Big fret visual -->
         <div style="text-align:center">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">STRING</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:8px">STRING</div>
           <div style="font-family:var(--heading);font-size:52px;color:var(--accent-bright);line-height:1">${stringName}</div>
           <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">#${note.tab.string} from top</div>
         </div>
         <div style="width:1px;background:var(--border)"></div>
         <div style="text-align:center">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">FRET</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:8px">FRET</div>
           <div style="font-family:var(--heading);font-size:52px;color:var(--accent-bright);line-height:1">${note.tab.fret === 0 ? 'O' : note.tab.fret}</div>
           <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${note.tab.fret === 0 ? 'open — no fretting' : fingerName}</div>
         </div>
@@ -4889,7 +5030,7 @@ function renderMiniFretboard(tab) {
       const stringIdx = STRINGS - tab.string; // flip: string 1 (e) is top
       const dy = 10 + stringIdx * 14 + 7;
       svg += `<circle cx="${dx}" cy="${dy}" r="8" fill="var(--accent)" opacity="0.9"/>`;
-      if (tab.finger) svg += `<text x="${dx}" y="${dy+4}" text-anchor="middle" font-size="9" fill="#141210" font-family="monospace" font-weight="bold">${tab.finger}</text>`;
+      if (tab.finger) svg += `<text x="${dx}" y="${dy+4}" text-anchor="middle" font-size="9" fill="#0A0A0C" font-family="monospace" font-weight="bold">${tab.finger}</text>`;
     }
   } else {
     // Open string indicator — circle at nut
@@ -5039,7 +5180,7 @@ function teacherSongComplete() {
   teacherListening = false;
   document.getElementById('teacherProgress').style.width = '100%';
   document.getElementById('teacherResult').style.display = 'block';
-  document.getElementById('teacherResult').style.background = 'rgba(200,132,90,0.2)';
+  document.getElementById('teacherResult').style.background = 'rgba(212,175,55,0.2)';
   document.getElementById('teacherResult').style.border = '1px solid var(--accent)';
   document.getElementById('teacherResult').style.color = 'var(--accent-bright)';
   document.getElementById('teacherResult').textContent = '🎉 SONG COMPLETE!';
@@ -5237,7 +5378,7 @@ function highlightPlaybackNote(idx) {
   // Flash the note name
   if (result) {
     result.style.display = 'block';
-    result.style.background = 'rgba(200,132,90,0.15)';
+    result.style.background = 'rgba(212,175,55,0.15)';
     result.style.border = '1px solid var(--accent)';
     result.style.color = 'var(--accent-bright)';
     result.style.fontSize = '18px';
@@ -5698,24 +5839,40 @@ function initSongSearch() {
   renderSavedSongsList();
 }
 
+// Free, keyless, CORS-open lyrics lookup — used to verify/replace AI-guessed
+// lyric text with the real words before we ever show them to the user.
+async function fetchRealLyrics(artist, title) {
+  if (!artist || !title) return null;
+  try {
+    const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist.trim())}/${encodeURIComponent(title.trim())}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const lyrics = (data.lyrics || '').trim();
+    return lyrics.length > 20 ? lyrics : null;
+  } catch(_) {
+    return null; // CORS/network hiccup — caller falls back to AI-approximated lyrics
+  }
+}
+
 function renderSavedSongsList() {
   const wrap = document.getElementById('savedSongsList');
   if (!wrap) return;
   const saved = loadSavedSongs();
   if (!saved.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = `
-    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">SAVED SONGS</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:8px">SAVED SONGS</div>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${saved.map(s => {
         const slug = songSlug(s.title);
-        return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:10px 14px;flex-wrap:wrap">
+        return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:10px 14px;flex-wrap:wrap">
           <div style="flex:1;cursor:pointer;min-width:120px" onclick="loadSavedSong('${slug}')">
             <div style="font-family:var(--heading);font-size:16px;letter-spacing:1px;color:var(--text-primary)">${s.title}</div>
             <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">${s.artist||''} ${s.key ? '· Key: '+s.key : ''} ${s.bpm ? '· '+s.bpm+' BPM' : ''}</div>
           </div>
           <button class="btn btn-sm btn-primary" onclick="sendSongToLearn('${slug}')" title="Add to Learn to Play">🎸 LEARN</button>
           <button onclick="deleteSavedSong('${slug}')"
-            style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:4px 6px;border-radius:2px" title="Remove">✕</button>
+            style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:4px 6px;border-radius:14px" title="Remove">✕</button>
         </div>`;
       }).join('')}
     </div>`;
@@ -5811,98 +5968,40 @@ Rules:
 - fingers array: 0=open/mute, 1=index, 2=middle, 3=ring, 4=pinky
 - barre: fret number if it's a barre chord, else null
 - strum dir: D=down, U=up, X=mute/chuck, R=rest
-- For lyrics_with_chords: include the FULL song lyrics (all verses, chorus, bridge) with chord markers. Label sections like "\\n[VERSE 1]\\n" and "\\n[CHORUS]\\n". Use \\n for line breaks within sections. Do not truncate — include every lyric line.
+- For lyrics_with_chords: this is a FALLBACK only (real lyrics get looked up and verified separately after this call) — include your best-effort FULL song lyrics (all verses, chorus, bridge) with chord markers so there's something to show if the lookup fails. Label sections like "\\n[VERSE 1]\\n" and "\\n[CHORUS]\\n". Use \\n for line breaks within sections. Do not truncate — include every lyric line you can recall.
 - For intro_tab: use \\n (backslash-n) between string lines — NOT real newlines
 - CRITICAL: The entire response must be valid JSON on a single conceptual line. Never put a raw line break inside a string value. Always use \\n as the escape sequence for newlines within strings.
 - If song is unknown, do your best approximation`;
 
     const text = await grokText(prompt);
 
-    // Sanitise Groq response before parsing:
-    // 1. Strip markdown fences
-    // 2. Replace literal newlines INSIDE JSON string values with \n escape
-    //    (Groq sometimes outputs raw newlines inside "lyrics" or "tab" fields)
-    // 3. Replace literal tabs with \t
-    // 4. Strip control characters (0x00-0x1F except escaped ones)
-    function sanitiseJson(raw) {
-      // Strip markdown fences
-      let s = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-
-      // Extract outermost { ... } block
-      const start = s.indexOf('{');
-      const end   = s.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('No JSON object found in response');
-      s = s.slice(start, end + 1);
-
-      // Walk the string character-by-character.
-      // Inside JSON string values we fix:
-      //   1. Bare newline/tab/CR  → proper \n \t \r escapes
-      //   2. Bad escape sequences → double the backslash (\x → \\x)
-      //      Valid JSON escapes: \" \\  \/ \b \f \n \r \t \uXXXX
-      //      Everything else is illegal and must be escaped
-      // Outside strings we pass through unchanged.
-
-      const VALID_AFTER_BACKSLASH = new Set(['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']);
-      let result   = '';
-      let inString = false;
-      let i = 0;
-
-      while (i < s.length) {
-        const ch = s[i];
-
-        if (!inString) {
-          // Not inside a string — pass structural chars through as-is
-          if (ch === '"') { inString = true; result += ch; i++; continue; }
-          result += ch; i++;
-          continue;
-        }
-
-        // Inside a string
-        if (ch === '"') {
-          // End of string
-          inString = false; result += ch; i++; continue;
-        }
-
-        if (ch === '\\') {
-          // Backslash — look at next char to decide if escape is valid
-          const next = s[i + 1];
-          if (!next) { result += '\\\\'; i++; continue; }
-
-          if (VALID_AFTER_BACKSLASH.has(next)) {
-            // Valid escape sequence — pass both chars through
-            if (next === 'u') {
-              // Unicode: needs exactly 4 hex digits after \u
-              const hex = s.slice(i + 2, i + 6);
-              if (/^[0-9a-fA-F]{4}$/.test(hex)) {
-                result += '\\u' + hex; i += 6; continue;
-              }
-              // Bad \u — escape the backslash
-              result += '\\\\'; i++; continue;
-            }
-            result += ch + next; i += 2; continue;
-          }
-
-          // Invalid escape (e.g. \m \( \- \s etc.)
-          // Replace the single backslash with \\ so the char is kept literally
-          result += '\\\\'; i++;
-          continue;
-        }
-
-        // Bare control characters inside a string
-        if (ch === '\n') { result += '\\n'; i++; continue; }
-        if (ch === '\r') { result += '\\r'; i++; continue; }
-        if (ch === '\t') { result += '\\t'; i++; continue; }
-        const code = ch.charCodeAt(0);
-        if (code < 0x20) { i++; continue; } // strip other control chars
-
-        result += ch; i++;
-      }
-
-      return result;
-    }
-
-    const clean = sanitiseJson(text);
+    // Sanitise Groq response before parsing (see sanitiseJsonResponse() near the
+    // Groq helpers — shared by song search and chord dictionary).
+    const clean = sanitiseJsonResponse(text);
     currentSongData = JSON.parse(clean);
+    currentSongData.lyrics_source = 'approx'; // default — overwritten below if verified
+
+    // ── Try to replace AI-guessed lyrics with the real, verified lyric text ──
+    // The model above is good at chords/tab/strum (those are interpretive anyway),
+    // but it's unreliable for exact lyric wording since lyric text is heavily
+    // filtered out of most training data. Pull the real lyrics from a lyrics DB
+    // and have the AI only insert chord markers into that verified text — it
+    // never gets to invent the words themselves.
+    try {
+      const realLyrics = await fetchRealLyrics(currentSongData.artist, currentSongData.title);
+      if (realLyrics) {
+        const chordList = (currentSongData.chords || []).map(c => c.name).join(', ') || 'chords that fit the song';
+        const alignPrompt = `Here are the VERIFIED, exact lyrics for "${currentSongData.title}" by ${currentSongData.artist}. Do not change, add, or remove a single word of the lyrics — reproduce them exactly as given. Your only job is to insert chord markers like [Em] right before the word or syllable where that chord change happens, choosing from this chord set: ${chordList}. Also insert section labels such as [VERSE 1] or [CHORUS] on their own line wherever the lyrics already have a blank line separating sections. Return ONLY the annotated lyrics as plain text — no JSON, no markdown fences, no commentary before or after.
+
+LYRICS:
+${realLyrics}`;
+        const annotated = await grokText(alignPrompt);
+        if (annotated && annotated.trim().length > 20) {
+          currentSongData.lyrics_with_chords = annotated.trim();
+          currentSongData.lyrics_source = 'verified';
+        }
+      }
+    } catch(_) { /* network/lookup failed — keep the AI-approximated lyrics as fallback */ }
 
     // Cache it — one and done
     songSearchCache[cacheKey] = currentSongData;
@@ -5951,7 +6050,7 @@ function renderSongResult(data) {
 
   document.getElementById('songMetaBar').innerHTML = `
     <div style="flex:1;min-width:0">
-      <div style="font-family:var(--heading);font-size:20px;letter-spacing:2px;color:var(--text-primary)">${data.title || ''}</div>
+      <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--text-primary)">${data.title || ''}</div>
       <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${data.artist || ''}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${metaPills}</div>
       ${data.capo_note ? `<div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:6px">💡 ${data.capo_note}</div>` : ''}
@@ -5973,7 +6072,7 @@ function renderSongResult(data) {
   const capoVal = data.capo || 0;
   document.getElementById('songPaneChords').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-      ${data.chord_progression ? `<div style="font-family:var(--mono);font-size:13px;color:var(--accent);padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;flex:1">PROGRESSION: ${data.chord_progression}</div>` : '<div></div>'}
+      ${data.chord_progression ? `<div style="font-family:var(--mono);font-size:13px;color:var(--accent);padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;flex:1">PROGRESSION: ${data.chord_progression}</div>` : '<div></div>'}
 
     </div>
     <div class="chord-grid">${(data.chords||[]).map(c => renderChordBox(c, capoVal)).join('')}</div>`;
@@ -5981,7 +6080,10 @@ function renderSongResult(data) {
   // LYRICS pane
   const lyricsHtml = (data.lyrics_with_chords || 'Lyrics not available')
     .replace(/\[([A-G][^[\]]*)\]/g, '<span class="chord-marker">[$1]</span>');
-  document.getElementById('songPaneLyrics').innerHTML = `<div class="lead-sheet">${lyricsHtml}</div>`;
+  const lyricsBadge = data.lyrics_source === 'verified'
+    ? `<div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:0.3px;color:var(--green);background:rgba(74,154,106,0.12);border:1px solid var(--green);border-radius:14px;padding:5px 12px;margin-bottom:12px">✓ VERIFIED LYRICS — chord placement is AI's best guess</div>`
+    : `<div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:0.3px;color:var(--accent-bright);background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:14px;padding:5px 12px;margin-bottom:12px">⚠ AI-APPROXIMATED LYRICS — may not match the exact recording</div>`;
+  document.getElementById('songPaneLyrics').innerHTML = `${lyricsBadge}<div class="lead-sheet">${lyricsHtml}</div>`;
 
   // STRUM pane
   document.getElementById('songPaneStrum').innerHTML = renderStrumPattern(data);
@@ -5992,8 +6094,8 @@ function renderSongResult(data) {
       `<div style="font-family:var(--mono);font-size:14px;line-height:1.8;color:var(--text-secondary);letter-spacing:1px">${line}</div>`
     ).join('');
   document.getElementById('songPaneTab').innerHTML = `
-    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:12px">INTRO / MAIN RIFF</div>
-    <div style="background:var(--bg-panel);padding:16px 20px;border-radius:4px;border:1px solid var(--border);overflow-x:auto">${tabHtml}</div>`;
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:12px">INTRO / MAIN RIFF</div>
+    <div style="background:var(--bg-panel);padding:16px 20px;border-radius:14px;border:1px solid var(--border);overflow-x:auto">${tabHtml}</div>`;
 
   showSongTab('chords', document.querySelector('.song-result-tab'));
 }
@@ -6044,7 +6146,7 @@ function renderChordBox(chord, capo) {
     const cy = 20 + (rel - 0.5) * stringH;
     svg += `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--accent)" opacity="0.9"/>`;
     const fi = fingers[s];
-    if (fi) svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8" fill="#141210" font-family="monospace" font-weight="bold">${fi}</text>`;
+    if (fi) svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8" fill="#0A0A0C" font-family="monospace" font-weight="bold">${fi}</text>`;
   });
   svg += '</svg>';
   return `<div class="chord-box"><div class="chord-name">${chord.name}</div>${svg}</div>`;
@@ -6061,17 +6163,17 @@ function renderStrumPattern(data) {
       <div class="strum-label">${b.beat}</div>
     </div>`).join('');
   return `
-    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:12px">STRUM PATTERN</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:12px">STRUM PATTERN</div>
     <div class="strum-pattern">${beatsHtml}</div>
     <div style="margin-top:12px;display:flex;gap:16px;font-family:var(--mono);font-size:11px;flex-wrap:wrap">
       <span style="color:var(--accent)">↓ Down strum</span>
       <span style="color:var(--accent-bright)">↑ Up strum</span>
       <span style="color:var(--text-dim)">✕ Mute/chuck</span>
       <span style="color:var(--border-bright)">— Rest</span>
-      <span style="border:1px solid var(--accent-dim);padding:0 4px;border-radius:2px;color:var(--accent)">★ Accent</span>
+      <span style="border:1px solid var(--accent-dim);padding:0 4px;border-radius:14px;color:var(--accent)">★ Accent</span>
     </div>
-    ${data.strum_note ? `<div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:10px;padding:8px 12px;background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:4px">💡 ${data.strum_note}</div>` : ''}
-    <div style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:6px">PLAY ALONG</div>
+    ${data.strum_note ? `<div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:10px;padding:8px 12px;background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:14px">💡 ${data.strum_note}</div>` : ''}
+    <div style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.3px;margin-bottom:6px">PLAY ALONG</div>
     <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">Use the ▶ PLAY button above to play through at your chosen speed. Song BPM: ${data.bpm || 120}</div>`;
 }
 
@@ -6152,7 +6254,7 @@ function strumPlayAlong() {
     // Highlight the active strum beat in the UI
     document.querySelectorAll('.strum-beat').forEach((el, i) => {
       el.style.background = i === patPos ? 'var(--accent)' : '';
-      el.style.color      = i === patPos ? '#141210' : '';
+      el.style.color      = i === patPos ? '#0A0A0C' : '';
       el.style.transform  = i === patPos ? 'scale(1.15)' : 'scale(1)';
     });
     // Highlight active chord name
@@ -6568,8 +6670,24 @@ Provide 2-4 common voicings. frets: 6 values E A D G B e low to high. -1=muted, 
 fingers: 0=open/mute, 1-4=finger number. barre: fret number or null.`;
 
     const text = await grokText(prompt);
-    const clean = text.replace(/```json|```/g,'').trim();
-    const voicings = JSON.parse(clean);
+    const clean = sanitiseJsonResponse(text);
+    let voicings = JSON.parse(clean);
+    if (!Array.isArray(voicings)) throw new Error('Unexpected response shape');
+
+    // Guard against malformed voicings (wrong array length, etc) so a bad
+    // AI response can't crash the fretboard renderer.
+    voicings = voicings
+      .filter(v => v && typeof v === 'object')
+      .map(v => ({
+        name: v.name || raw,
+        position: v.position || '',
+        frets: Array.isArray(v.frets) && v.frets.length === 6 ? v.frets : [0,0,0,0,0,0],
+        fingers: Array.isArray(v.fingers) && v.fingers.length === 6 ? v.fingers : [0,0,0,0,0,0],
+        barre: typeof v.barre === 'number' ? v.barre : null,
+        note_names: Array.isArray(v.note_names) ? v.note_names : null,
+      }));
+    if (!voicings.length) throw new Error('No valid voicings returned');
+
     chordDictCache[cacheKey] = voicings;
     localStorage.setItem('unplugged_chord_cache', JSON.stringify(chordDictCache));
     renderChordDict(voicings);
@@ -6883,6 +7001,112 @@ function renderPracticeLog() {
       <div class="practice-log-note">${p.note || '—'}</div>
     </div>`;
   }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ORIGINALS — the user's own written songs (lyrics/chords/notes)
+// ══════════════════════════════════════════════════════════════
+let originalSongs = JSON.parse(localStorage.getItem('unplugged_originals') || '[]');
+let currentOriginalId = null;
+let originalAutosaveTimer = null;
+
+function saveOriginals() {
+  localStorage.setItem('unplugged_originals', JSON.stringify(originalSongs));
+}
+
+function initOriginals() {
+  renderOriginalsStack();
+}
+
+function renderOriginalsStack() {
+  const stack = document.getElementById('originalsStack');
+  const empty = document.getElementById('originalsEmpty');
+  if (!stack) return;
+  if (!originalSongs.length) {
+    stack.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  const sorted = originalSongs.slice().sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+  stack.innerHTML = sorted.map(s => {
+    const preview = (s.body || '').replace(/\[[^\]]*\]/g, '').trim().split('\n').find(l => l.trim()) || 'No lyrics yet — tap to start writing';
+    const meta = [s.key, s.tuning].filter(Boolean).join(' · ');
+    const when = s.updatedAt ? new Date(s.updatedAt).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
+    return `<div class="original-card" onclick="openOriginalEditor('${s.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div class="original-card-title">${escapeHtml(s.title || 'Untitled')}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);white-space:nowrap">${when}</div>
+      </div>
+      ${meta ? `<div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:0.3px;margin-top:2px">${escapeHtml(meta)}</div>` : ''}
+      <div class="original-card-preview">${escapeHtml(preview)}</div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+function newOriginal() {
+  const id = uid();
+  const song = { id, title: '', key: '', tuning: '', body: '', updatedAt: Date.now() };
+  originalSongs.push(song);
+  saveOriginals();
+  openOriginalEditor(id);
+}
+
+function openOriginalEditor(id) {
+  const song = originalSongs.find(s => s.id === id);
+  if (!song) return;
+  currentOriginalId = id;
+  document.getElementById('originalTitleInput').value = song.title || '';
+  document.getElementById('originalKeyInput').value = song.key || '';
+  document.getElementById('originalTuningInput').value = song.tuning || '';
+  document.getElementById('originalBodyInput').value = song.body || '';
+  document.getElementById('originalSavedStatus').textContent = 'Saved';
+
+  document.getElementById('lazPanelOriginals').style.display = 'none';
+  document.getElementById('lazPanelOriginalEdit').style.display = 'block';
+  history.pushState({ type: 'laz-panel', name: 'originals' }, '', location.pathname + location.search);
+  setTimeout(() => document.getElementById('originalTitleInput').focus(), 50);
+}
+
+function closeOriginalEditor() {
+  currentOriginalId = null;
+  document.getElementById('lazPanelOriginalEdit').style.display = 'none';
+  document.getElementById('lazPanelOriginals').style.display = 'block';
+  renderOriginalsStack();
+}
+
+function autosaveOriginal() {
+  if (!currentOriginalId) return;
+  const status = document.getElementById('originalSavedStatus');
+  if (status) status.textContent = 'Saving…';
+  clearTimeout(originalAutosaveTimer);
+  originalAutosaveTimer = setTimeout(() => {
+    const song = originalSongs.find(s => s.id === currentOriginalId);
+    if (!song) return;
+    song.title   = document.getElementById('originalTitleInput').value;
+    song.key     = document.getElementById('originalKeyInput').value;
+    song.tuning  = document.getElementById('originalTuningInput').value;
+    song.body    = document.getElementById('originalBodyInput').value;
+    song.updatedAt = Date.now();
+    saveOriginals();
+    if (status) status.textContent = 'Saved';
+  }, 500);
+}
+
+function deleteOriginal() {
+  if (!currentOriginalId) return;
+  if (!confirm('Delete this song? This can\'t be undone.')) return;
+  originalSongs = originalSongs.filter(s => s.id !== currentOriginalId);
+  saveOriginals();
+  closeOriginalEditor();
+  showToast('Song deleted', 'info');
 }
 
 
