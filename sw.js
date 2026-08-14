@@ -3,7 +3,13 @@
 //  Caches app shell for full offline use
 // ══════════════════════════════════════════
 
-const CACHE_NAME = 'unplugged-v2.2';
+// IMPORTANT: bump this version string any time index.html (or anything in
+// CACHE_URLS) changes. The browser only checks for service-worker updates by
+// comparing sw.js byte-for-byte — if THIS file doesn't change, the browser
+// never knows there's anything new to fetch, and cache-first below means it
+// will happily keep serving a months-old index.html forever, even after
+// dozens of real deploys. Bumping this string is what forces a refresh.
+const CACHE_NAME = 'unplugged-v2.3';
 const CACHE_URLS = [
   './index.html',
   './',
@@ -14,7 +20,6 @@ const CACHE_URLS = [
   './icons/icon-180.png',
   './icons/icon-152.png',
   './icons/icon-120.png',
-  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
 ];
 
@@ -42,7 +47,9 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ── FETCH: cache-first for app shell, network-first for API calls ──
+// ── FETCH: network-first for the app shell (so real updates always reach
+//    the user immediately), cache-first for static assets that rarely
+//    change (icons, CDN libs), network-first for API calls. ──
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -51,15 +58,32 @@ self.addEventListener('fetch', event => {
     return; // let it pass through normally
   }
 
-  // Never cache Google Fonts CSS (changes frequently), but DO cache font files
-  if (url.hostname === 'fonts.googleapis.com') {
+  // Never intercept the lyrics lookup — must go to network
+  if (url.hostname === 'api.lyrics.ovh') {
+    return;
+  }
+
+  // App shell (the HTML itself, and any direct navigation) — ALWAYS try the
+  // network first so updates land immediately. Only fall back to the cached
+  // copy if the network is unreachable (offline use).
+  const isAppShell = event.request.mode === 'navigate' ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/');
+  if (isAppShell) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
     );
     return;
   }
 
-  // Cache-first for everything else (app shell, icons, CDN libs, font files)
+  // Everything else (icons, CDN libs) — cache-first, since these are static
+  // and versioned by filename/CDN path, not expected to change silently.
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
