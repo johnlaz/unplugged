@@ -3,7 +3,7 @@
 //  Caches app shell for full offline use
 // ══════════════════════════════════════════
 
-const CACHE_NAME = 'unplugged-v2.1';
+const CACHE_NAME = 'unplugged-v2.2';
 const CACHE_URLS = [
   './index.html',
   './',
