@@ -4315,7 +4315,7 @@ async function startTuner() {
     if (tunerCtx.state === 'suspended') await tunerCtx.resume();
     const src = tunerCtx.createMediaStreamSource(tunerStream);
     tunerAnalyser = tunerCtx.createAnalyser();
-    tunerAnalyser.fftSize = 8192;
+    tunerAnalyser.fftSize = 4096;
     tunerAnalyser.smoothingTimeConstant = 0.0;
     src.connect(tunerAnalyser);
     document.getElementById('tunerStartBtn').style.display = 'none';
@@ -4397,15 +4397,26 @@ function autocorrelate(buf, sampleRate) {
   for (let i = 0; i < SIZE/2; i++) { if (Math.abs(buf[i]) < threshold) { r1 = i; break; } }
   for (let i = 1; i < SIZE/2; i++) { if (Math.abs(buf[SIZE-i]) < threshold) { r2 = SIZE - i; break; } }
   const trimmed = buf.slice(r1, r2);
-  const c = new Float32Array(trimmed.length).fill(0);
-  for (let i = 0; i < trimmed.length; i++)
-    for (let j = 0; j < trimmed.length - i; j++)
-      c[i] += trimmed[j] * trimmed[j + i];
 
-  let d = 0;
-  while (d < c.length && c[d] > c[d+1]) d++;
+  // Only search lags that correspond to a guitar's actual range (~65Hz–1200Hz,
+  // covers a dropped low E through well past the 12th fret on a high E).
+  // The naive version below scanned EVERY possible lag (up to the full buffer
+  // length) — an O(n²) scan that's fine on a desktop CPU but far too slow to
+  // keep up with a 60fps animation loop on a phone, which made the tuner look
+  // completely unresponsive even with a live mic feed.
+  const minLag = Math.floor(sampleRate / 1200);
+  const maxLag = Math.min(Math.ceil(sampleRate / 65), trimmed.length - 1);
+  if (maxLag <= minLag) return null;
+
+  const c = new Float32Array(maxLag + 1).fill(0);
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let sum = 0;
+    for (let j = 0; j < trimmed.length - lag; j++) sum += trimmed[j] * trimmed[j + lag];
+    c[lag] = sum;
+  }
+
   let maxVal = -1, maxPos = -1;
-  for (let i = d; i < c.length; i++) { if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; } }
+  for (let i = minLag; i <= maxLag; i++) { if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; } }
   if (maxPos < 1) return null;
 
   // Parabolic interpolation
@@ -4852,7 +4863,7 @@ async function startTeacher() {
       if (teacherMicCtx.state === 'suspended') await teacherMicCtx.resume();
       const src = teacherMicCtx.createMediaStreamSource(teacherMicStream);
       teacherMicAnalyser = teacherMicCtx.createAnalyser();
-      teacherMicAnalyser.fftSize = 8192;
+      teacherMicAnalyser.fftSize = 4096;
       teacherMicAnalyser.smoothingTimeConstant = 0.0;
       src.connect(teacherMicAnalyser);
       teacherListening = true;
