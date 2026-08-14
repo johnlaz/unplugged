@@ -886,7 +886,7 @@ select.filter-select {
           </button>
           <div style="font-size:20px;flex-shrink:0" id="teacherMicIcon">🎤</div>
           <div style="flex:1">
-            <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px" id="teacherListeningLabel">LISTENING…</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px;cursor:pointer" id="teacherListeningLabel" onclick="if(!teacherListening) showMicHelp(lastMicFailReason || 'denied')">LISTENING…</div>
             <div style="height:8px;background:var(--border);border-radius:14px;margin-top:6px;overflow:hidden">
               <div id="teacherMicLevel" style="height:100%;width:0%;background:var(--accent);border-radius:14px;transition:width .05s"></div>
             </div>
@@ -911,7 +911,7 @@ select.filter-select {
         </div>
         <div style="text-align:center">
           <div class="hero-song-title" id="heroSongTitle"></div>
-          <div class="hero-mic-status" id="heroMicStatus">🎤 LISTENING</div>
+          <div class="hero-mic-status" id="heroMicStatus" onclick="if(heroMicStatusFailed) showMicHelp(lastMicFailReason || 'denied')">🎤 LISTENING</div>
         </div>
         <div style="text-align:right">
           <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">ACCURACY</div>
@@ -1910,6 +1910,19 @@ select.filter-select {
 @keyframes countPop { 0%{transform:scale(1.5);opacity:0} 100%{transform:scale(1);opacity:1} }
 </style>
 
+<!-- MIC DIAGNOSTIC HELP MODAL -->
+<div class="modal-overlay" id="micHelpModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">🎤 Microphone Access</div>
+      <button class="modal-close" onclick="closeModal('micHelpModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="micHelpBody" style="font-family:var(--body);font-size:14px;color:var(--text-secondary);line-height:1.7"></div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -2118,6 +2131,64 @@ function openModal(id) {
   if (id === 'settingsModal') loadSettings();
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ══════════════════════════════════════════
+//  MIC ACCESS — pre-flight check + diagnostics
+// ══════════════════════════════════════════
+// Figures out WHY mic access isn't working before even trying getUserMedia,
+// since browsers give up different failure modes for different root causes
+// (insecure context vs unsupported browser vs already-denied permission),
+// and a generic "mic access denied" toast doesn't tell the user which one
+// they're dealing with or how to fix it on their specific device.
+function checkMicSupport() {
+  if (!window.isSecureContext) return 'insecure';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return 'unsupported';
+  return null; // looks fine — try getUserMedia and handle errors there
+}
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function showMicHelp(reason) {
+  const ios = isIOS();
+  let html = '';
+
+  if (reason === 'insecure') {
+    html = `<p><strong>This page isn't loading over a secure connection.</strong></p>
+    <p>Browsers block microphone access entirely on non-HTTPS pages — and won't even show a permission prompt, which is why nothing seems to happen.</p>
+    <p>Make sure you're opening this app via its <strong>https://</strong> link (like the GitHub Pages URL), not a file opened directly on the phone.</p>`;
+  } else if (reason === 'unsupported') {
+    html = `<p><strong>This browser doesn't support microphone access.</strong></p>
+    <p>This usually happens inside an in-app browser (like a link opened from Instagram, Facebook, or another app) rather than your phone's actual browser.</p>
+    <p>Try opening this app directly in <strong>Safari</strong> (iPhone) or <strong>Chrome</strong> (Android) instead.</p>`;
+  } else if (reason === 'denied') {
+    html = ios ? `
+    <p><strong>Microphone access was denied and iOS isn't offering to ask again.</strong></p>
+    <p>iOS ties mic permission to Safari itself, even for apps added to your Home Screen. Try this:</p>
+    <ol style="padding-left:20px;margin-top:6px">
+      <li>Open <strong>Settings → Safari</strong></li>
+      <li>Scroll to <strong>Microphone</strong> and make sure it's not set to "Deny" for this site (or set it to "Ask")</li>
+      <li>If you don't see the site listed, open this app in a regular Safari tab first (not the Home Screen icon), grant mic access there, then the Home Screen version should work</li>
+      <li>You may need to close Safari completely (swipe it away in the app switcher) after changing the setting</li>
+    </ol>` : `
+    <p><strong>Microphone access was denied and this browser isn't offering to ask again.</strong></p>
+    <p>Try this:</p>
+    <ol style="padding-left:20px;margin-top:6px">
+      <li>Tap the <strong>⋮</strong> or <strong>🔒</strong> icon in the address bar</li>
+      <li>Open <strong>Site settings → Permissions</strong></li>
+      <li>Set <strong>Microphone</strong> to "Allow" or "Ask"</li>
+      <li>Reload the page</li>
+    </ol>
+    <p style="margin-top:10px">If this app is installed as a Home Screen app/shortcut, also check <strong>Android Settings → Apps → [Browser or App name] → Permissions → Microphone</strong>.</p>`;
+  } else {
+    html = `<p><strong>Couldn't access the microphone.</strong></p><p>${reason || 'Unknown error.'}</p>`;
+  }
+
+  document.getElementById('micHelpBody').innerHTML = html;
+  openModal('micHelpModal');
+}
 
 // ══════════════════════════════════════════
 //  SCREENS
@@ -4083,16 +4154,26 @@ async function recSelectDevice() {
   const sel = document.getElementById('recDeviceSelect');
   sel.style.display = sel.style.display === 'none' ? 'block' : 'none';
   if (sel.style.display === 'block') {
-    await navigator.mediaDevices.getUserMedia({ audio: true }); // request permission first
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const audioIn = devices.filter(d => d.kind === 'audioinput');
-    sel.innerHTML = audioIn.map(d =>
-      `<option value="${d.deviceId}">${d.label || 'Microphone ' + (audioIn.indexOf(d)+1)}</option>`
-    ).join('');
+    const unsupported = checkMicSupport();
+    if (unsupported) { showMicHelp(unsupported); sel.style.display = 'none'; return; }
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true }); // request permission first
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioIn = devices.filter(d => d.kind === 'audioinput');
+      sel.innerHTML = audioIn.map(d =>
+        `<option value="${d.deviceId}">${d.label || 'Microphone ' + (audioIn.indexOf(d)+1)}</option>`
+      ).join('');
+    } catch(e) {
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') { showMicHelp('denied'); }
+      else { showToast('Mic access failed: ' + e.message, 'error'); }
+      sel.style.display = 'none';
+    }
   }
 }
 
 async function startRecording() {
+  const unsupported = checkMicSupport();
+  if (unsupported) { showMicHelp(unsupported); return; }
   try {
     const sel = document.getElementById('recDeviceSelect');
     const deviceId = sel.style.display !== 'none' && sel.value ? sel.value : undefined;
@@ -4101,6 +4182,7 @@ async function startRecording() {
 
     // Level meter
     const ctx = new AudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
     const src = ctx.createMediaStreamSource(recStream);
     recAnalyser = ctx.createAnalyser();
     recAnalyser.fftSize = 256;
@@ -4126,7 +4208,8 @@ async function startRecording() {
       document.getElementById('recTime').textContent = m + ':' + s;
     }, 1000);
   } catch(e) {
-    showToast('Mic access denied: ' + e.message, 'error');
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') { showMicHelp('denied'); return; }
+    showToast('Mic access failed: ' + e.message, 'error');
   }
 }
 
@@ -4224,9 +4307,12 @@ function tunerSetTarget(note, freq) {
 }
 
 async function startTuner() {
+  const unsupported = checkMicSupport();
+  if (unsupported) { showMicHelp(unsupported); return; }
   try {
     tunerStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
     tunerCtx = new AudioContext();
+    if (tunerCtx.state === 'suspended') await tunerCtx.resume();
     const src = tunerCtx.createMediaStreamSource(tunerStream);
     tunerAnalyser = tunerCtx.createAnalyser();
     tunerAnalyser.fftSize = 8192;
@@ -4236,7 +4322,8 @@ async function startTuner() {
     document.getElementById('tunerStopBtn').style.display = 'inline-block';
     animateTuner();
   } catch(e) {
-    showToast('Mic access denied: ' + e.message, 'error');
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') { showMicHelp('denied'); return; }
+    showToast('Mic access failed: ' + e.message, 'error');
   }
 }
 
@@ -4258,6 +4345,7 @@ function stopTuner() {
 function animateTuner() {
   tunerAnimFrame = requestAnimationFrame(animateTuner);
   if (!tunerAnalyser) return;
+  if (tunerCtx && tunerCtx.state === 'suspended') { tunerCtx.resume(); return; } // self-heal if mobile OS suspends it mid-session
   const buf = new Float32Array(tunerAnalyser.fftSize);
   tunerAnalyser.getFloatTimeDomainData(buf);
 
@@ -4343,6 +4431,7 @@ let heroAnimFrame = null;
 let heroLastTime = null;
 let heroElapsed = 0;
 let heroMicStream = null;
+let heroMicStatusFailed = false;
 let heroMicCtx = null;
 let heroMicAnalyser = null;
 let heroDetectedFreq = 0;
@@ -4716,6 +4805,7 @@ async function startHero() {
 let teacherSong = null;
 let teacherNoteIdx = 0;
 let teacherMicStream = null;
+let lastMicFailReason = null; // shared across tuner/recorder/teacher/hero — for "tap for why" diagnostics
 let teacherMicCtx = null;
 let teacherMicAnalyser = null;
 let teacherAnimFrame = null;
@@ -4748,21 +4838,30 @@ async function startTeacher() {
   document.getElementById('teacherNoteTotal').textContent = teacherSong.notes.length;
 
   // Start mic
-  try {
-    teacherMicStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
-    });
-    teacherMicCtx = new AudioContext();
-    const src = teacherMicCtx.createMediaStreamSource(teacherMicStream);
-    teacherMicAnalyser = teacherMicCtx.createAnalyser();
-    teacherMicAnalyser.fftSize = 8192;
-    teacherMicAnalyser.smoothingTimeConstant = 0.0;
-    src.connect(teacherMicAnalyser);
-    teacherListening = true;
-    teacherListenLoop();
-  } catch(e) {
-    document.getElementById('teacherListeningLabel').textContent = '⚠ NO MIC — click HEAR IT to preview notes, SKIP to advance';
+  const teacherUnsupported = checkMicSupport();
+  if (teacherUnsupported) {
+    lastMicFailReason = teacherUnsupported;
+    document.getElementById('teacherListeningLabel').textContent = '⚠ NO MIC — tap for why · HEAR IT to preview, SKIP to advance';
     teacherListening = false;
+  } else {
+    try {
+      teacherMicStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      });
+      teacherMicCtx = new AudioContext();
+      if (teacherMicCtx.state === 'suspended') await teacherMicCtx.resume();
+      const src = teacherMicCtx.createMediaStreamSource(teacherMicStream);
+      teacherMicAnalyser = teacherMicCtx.createAnalyser();
+      teacherMicAnalyser.fftSize = 8192;
+      teacherMicAnalyser.smoothingTimeConstant = 0.0;
+      src.connect(teacherMicAnalyser);
+      teacherListening = true;
+      teacherListenLoop();
+    } catch(e) {
+      lastMicFailReason = (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') ? 'denied' : (e.message || 'denied');
+      document.getElementById('teacherListeningLabel').textContent = '⚠ NO MIC — tap for why · HEAR IT to preview, SKIP to advance';
+      teacherListening = false;
+    }
   }
 
   renderTeacherNote();  // also calls renderTabDisplay internally
@@ -5458,19 +5557,30 @@ async function startHeroGame() {
   stage.style.display = 'flex';
   history.pushState({ type: 'hero-game' }, '', location.pathname + location.search);
 
-  try {
-    heroMicStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
-    });
-    heroMicCtx = new AudioContext();
-    const src = heroMicCtx.createMediaStreamSource(heroMicStream);
-    heroMicAnalyser = heroMicCtx.createAnalyser();
-    heroMicAnalyser.fftSize = 4096;
-    heroMicAnalyser.smoothingTimeConstant = 0.0;
-    src.connect(heroMicAnalyser);
-    document.getElementById('heroMicStatus').textContent = '🎤 LISTENING';
-  } catch(e) {
-    document.getElementById('heroMicStatus').textContent = '🔇 NO MIC';
+  const heroUnsupported = checkMicSupport();
+  if (heroUnsupported) {
+    lastMicFailReason = heroUnsupported;
+    heroMicStatusFailed = true;
+    document.getElementById('heroMicStatus').textContent = '🔇 NO MIC — tap for why';
+  } else {
+    try {
+      heroMicStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      });
+      heroMicCtx = new AudioContext();
+      if (heroMicCtx.state === 'suspended') await heroMicCtx.resume();
+      const src = heroMicCtx.createMediaStreamSource(heroMicStream);
+      heroMicAnalyser = heroMicCtx.createAnalyser();
+      heroMicAnalyser.fftSize = 4096;
+      heroMicAnalyser.smoothingTimeConstant = 0.0;
+      src.connect(heroMicAnalyser);
+      heroMicStatusFailed = false;
+      document.getElementById('heroMicStatus').textContent = '🎤 LISTENING';
+    } catch(e) {
+      lastMicFailReason = (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') ? 'denied' : (e.message || 'denied');
+      heroMicStatusFailed = true;
+      document.getElementById('heroMicStatus').textContent = '🔇 NO MIC — tap for why';
+    }
   }
 
   heroRunning = true;
@@ -6542,6 +6652,7 @@ function startMetronome() {
   metroRunning = true;
   metroBeat = 0;
   if (!metroCtx) metroCtx = new AudioContext();
+  if (metroCtx.state === 'suspended') metroCtx.resume();
   document.getElementById('metroStartBtn').textContent = '⏹ STOP';
   const msPerBeat = 60000 / metroBpm / metroSubdiv;
   let pendulumDir = 1;
