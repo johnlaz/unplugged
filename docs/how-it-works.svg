@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" role="img" aria-labelledby="t d">
+  <title id="t">How Unplugged works</title>
+  <desc id="d">Four steps: add or scan an instrument, optional AI fills the specs, the vault is stored on your device, and the tools hub offers tuner, chords, setlists and practice.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10Z" fill="#C97B3A"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="380" rx="18" fill="#0F0C08"/>
+  <rect x="1" y="1" width="1198" height="378" rx="17" fill="none" stroke="#C97B3A" stroke-opacity=".35"/>
+  <g font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" text-anchor="middle">
+    <text x="600" y="48" font-size="22" font-weight="700" fill="#E8A55A" letter-spacing="3">HOW IT WORKS</text>
+
+    <g>
+      <rect x="40" y="90" width="248" height="190" rx="14" fill="#15100A" stroke="#C97B3A" stroke-opacity=".5"/>
+      <text x="164" y="132" font-size="30" font-weight="700" fill="#C97B3A">1</text>
+      <text x="164" y="168" font-size="20" font-weight="700" fill="#F5E8D0">Add or scan</text>
+      <text x="164" y="200" font-size="15" fill="#C9B79A">Type it in, import a</text>
+      <text x="164" y="222" font-size="15" fill="#C9B79A">spreadsheet, or point</text>
+      <text x="164" y="244" font-size="15" fill="#C9B79A">your camera at it</text>
+    </g>
+    <path d="M292 185 H334" stroke="#C97B3A" stroke-width="2.5" marker-end="url(#ar)"/>
+
+    <g>
+      <rect x="340" y="90" width="248" height="190" rx="14" fill="#15100A" stroke="#C97B3A" stroke-opacity=".5"/>
+      <text x="464" y="132" font-size="30" font-weight="700" fill="#C97B3A">2</text>
+      <text x="464" y="168" font-size="20" font-weight="700" fill="#F5E8D0">AI fills the specs</text>
+      <text x="464" y="200" font-size="15" fill="#C9B79A">Optional. Groq, using</text>
+      <text x="464" y="222" font-size="15" fill="#C9B79A">your own free API key,</text>
+      <text x="464" y="244" font-size="15" fill="#C9B79A">results cached locally</text>
+    </g>
+    <path d="M592 185 H634" stroke="#C97B3A" stroke-width="2.5" marker-end="url(#ar)"/>
+
+    <g>
+      <rect x="640" y="90" width="248" height="190" rx="14" fill="#15100A" stroke="#C97B3A" stroke-opacity=".5"/>
+      <text x="764" y="132" font-size="30" font-weight="700" fill="#C97B3A">3</text>
+      <text x="764" y="168" font-size="20" font-weight="700" fill="#F5E8D0">Your vault</text>
+      <text x="764" y="200" font-size="15" fill="#C9B79A">Specs, value, service,</text>
+      <text x="764" y="222" font-size="15" fill="#C9B79A">gigs and mods, saved in</text>
+      <text x="764" y="244" font-size="15" fill="#C9B79A">this browser only</text>
+    </g>
+    <path d="M892 185 H934" stroke="#C97B3A" stroke-width="2.5" marker-end="url(#ar)"/>
+
+    <g>
+      <rect x="940" y="90" width="220" height="190" rx="14" fill="#15100A" stroke="#C97B3A" stroke-opacity=".5"/>
+      <text x="1050" y="132" font-size="30" font-weight="700" fill="#C97B3A">4</text>
+      <text x="1050" y="168" font-size="20" font-weight="700" fill="#F5E8D0">Tools hub</text>
+      <text x="1050" y="200" font-size="15" fill="#C9B79A">Tuner, chords, songs,</text>
+      <text x="1050" y="222" font-size="15" fill="#C9B79A">metronome, setlists,</text>
+      <text x="1050" y="244" font-size="15" fill="#C9B79A">practice timer</text>
+    </g>
+
+    <text x="600" y="332" font-size="16" fill="#8B5A2B" letter-spacing="1">Works offline once installed. Only AI lookups, lyrics and photo searches need a connection.</text>
+  </g>
+</svg>

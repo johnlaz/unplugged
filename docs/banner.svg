@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="t d">
+  <title id="t">UNPLUGGED, Instrument Vault</title>
+  <desc id="d">Copper guitar pick with a music note and plug beside the UNPLUGGED wordmark and tagline.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1410"/><stop offset="1" stop-color="#090806"/>
+    </linearGradient>
+    <linearGradient id="cu" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E8A55A"/><stop offset="1" stop-color="#8B5A2B"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="18" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1198" height="298" rx="17" fill="none" stroke="#C97B3A" stroke-opacity=".35"/>
+  <!-- pick -->
+  <g transform="translate(120 150)">
+    <path d="M0 -105 C62 -105 98 -62 92 -8 C86 50 38 100 0 112 C-38 100 -86 50 -92 -8 C-98 -62 -62 -105 0 -105Z" fill="url(#cu)"/>
+    <path d="M-28 36 L-28 -34 L14 -52 L14 8" fill="none" stroke="#1a1410" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <ellipse cx="-40" cy="38" rx="16" ry="12" fill="#1a1410"/>
+    <path d="M34 -40 L34 -14 M52 -40 L52 -14 M26 -14 H60 V4 C60 18 50 26 43 26 C36 26 26 18 26 4Z" fill="none" stroke="#1a1410" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="270" y="148" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="78" font-weight="700" letter-spacing="10" fill="#E8A55A">UNPLUGGED</text>
+  <text x="274" y="196" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="28" fill="#C9B79A">Instrument vault. Scan it, spec it, tune it, play it.</text>
+  <text x="274" y="238" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="18" letter-spacing="3" fill="#8B5A2B">OFFLINE-READY PWA  ·  NO ACCOUNT  ·  YOUR DATA STAYS ON YOUR DEVICE</text>
+</svg>
