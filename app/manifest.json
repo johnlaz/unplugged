@@ -1,46 +1,25 @@
 {
+  "id": "/unplugged/app/",
   "name": "UNPLUGGED \u2014 Instrument Vault",
   "short_name": "UNPLUGGED",
-  "description": "AI-powered musical instrument inventory management",
+  "description": "AI-powered musical instrument inventory, tuner, chord and song tools. Works offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0A0A0C",
-  "theme_color": "#D4AF37",
+  "theme_color": "#C97B3A",
   "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-180.png",
-      "sizes": "180x180",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-120.png",
-      "sizes": "120x120",
-      "type": "image/png"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
-  "categories": [
-    "music",
-    "utilities",
-    "lifestyle"
+  "screenshots": [
+    { "src": "shot-phone-1.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Your instrument vault" },
+    { "src": "shot-phone-2.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Instrument detail with specs and logs" },
+    { "src": "shot-desktop.png", "sizes": "1920x1080", "type": "image/png", "form_factor": "wide", "label": "Vault on desktop" }
   ],
+  "categories": ["music", "utilities", "lifestyle"],
   "lang": "en-US"
 }

@@ -9,18 +9,17 @@
 // never knows there's anything new to fetch, and cache-first below means it
 // will happily keep serving a months-old index.html forever, even after
 // dozens of real deploys. Bumping this string is what forces a refresh.
-const CACHE_NAME = 'unplugged-v2.4';
+// Keep VERSION in sync with APP_VERSION in index.html (the in-app version stamp).
+const VERSION = '2.5';
+const CACHE_NAME = 'unplugged-v' + VERSION;
+const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 const CACHE_URLS = [
   './index.html',
   './',
   './manifest.json',
-  './icons/unplugged.ico',
-  './icons/icon-512.png',
-  './icons/icon-192.png',
-  './icons/icon-180.png',
-  './icons/icon-152.png',
-  './icons/icon-120.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  './icon-512.png',
+  './icon-192.png',
+  XLSX_URL,
 ];
 
 // ── INSTALL: cache everything ──
@@ -63,6 +62,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Only same-origin files and the pinned SheetJS build are ever cached. Everything else
+  // cross-origin (Wikipedia/Commons/Discogs/Picsum photos, APIs) goes straight to the network,
+  // so photo lookups never go stale and the cache cannot grow without bound.
+  if (url.origin !== self.location.origin && url.href !== XLSX_URL) {
+    return;
+  }
+
   // App shell (the HTML itself, and any direct navigation) — ALWAYS try the
   // network first so updates land immediately. Only fall back to the cached
   // copy if the network is unreachable (offline use).
@@ -82,7 +88,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Everything else (icons, CDN libs) — cache-first, since these are static
+  // Everything else (same-origin icons, the pinned SheetJS build) — cache-first, since these are static
   // and versioned by filename/CDN path, not expected to change silently.
   event.respondWith(
     caches.match(event.request).then(cached => {
