@@ -4,13 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#C97B3A" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#C97B3A">
+<meta name="theme-color" id="metaTheme" content="#0F0F12">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Unplugged: catalogue your instruments, scan gear for specs, and tune, practice and prep for the gig. Works offline.">
+<script>
+/* Apply the saved theme before first paint (no flash). auto = follow the device. */
+(function(){try{var t=localStorage.getItem("unplugged_theme")||"auto";var dark=t==="dark"||(t==="auto"&&!window.matchMedia("(prefers-color-scheme: light)").matches);document.documentElement.setAttribute("data-theme",dark?"dark":"light");var m=document.getElementById("metaTheme");if(m)m.setAttribute("content",dark?"#0F0F12":"#F5F1E9");}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();
+</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="UNPLUGGED">
-<title>UNPLUGGED v2.5 — Instrument Vault</title>
+<title>Unplugged — Instrument Collection</title>
 
 <!-- ── ICONS (flat: 192 + 512 only) ── -->
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -19,407 +24,526 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-:root {
-  --bg-deep: #0A0A0C;
-  --bg-card: #1C1C1E;
-  --bg-panel: #221F26;
-  --bg-hover: #2A2730;
-  --border: rgba(255,255,255,0.08);
-  --border-bright: rgba(255,255,255,0.18);
+/* ══════════════════════════════════════════
+   DESIGN TOKENS — dark is the base, light is an override.
+   .force-dark pins a surface to the dark palette (game stage, camera overlays).
+   ══════════════════════════════════════════ */
+:root, .force-dark, #heroStage, .count-in-display {
+  color-scheme: dark;
+  --bg-deep: #0F0F12;
+  --bg-card: #1A1A1E;
+  --bg-panel: #212126;
+  --bg-hover: #2A2A30;
+  --img-bg: #26262B;
+  --border: rgba(255,255,255,0.07);
+  --border-bright: rgba(255,255,255,0.16);
   --accent: #C97B3A;
   --accent-dim: #8B5A2B;
-  --accent-glow: rgba(201,123,58,0.15);
+  --accent-glow: rgba(201,123,58,0.14);
   --accent-bright: #E8A55A;
-  --red: #c0392b;
-  --green: #4a9a6a;
+  --on-accent: #1A1209;
+  --red: #E5685A;
+  --green: #5DB27E;
   --text-primary: #F2F0EA;
-  --text-secondary: #9a978f;
-  --text-dim: #5a5750;
-  --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
-  --heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  --body: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --text-secondary: #A5A29A;
+  --text-dim: #7C7970;
+  --header-bg: rgba(15,15,18,0.82);
+  --nav-bg: rgba(26,26,30,0.88);
+  --overlay: rgba(0,0,0,0.62);
+  --badge-bg: rgba(15,15,18,0.72);
+  --toast-bg: #2E2E34;
+  --toast-fg: #F2F0EA;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.30);
+  --shadow-md: 0 8px 28px rgba(0,0,0,0.38);
+  --shadow-lg: 0 24px 64px rgba(0,0,0,0.58);
+  --ink-04: rgba(255,255,255,0.04);
+  --ink-06: rgba(255,255,255,0.06);
+  --ink-10: rgba(255,255,255,0.10);
+  --ink-15: rgba(255,255,255,0.15);
+  --ink-20: rgba(255,255,255,0.20);
+  --ink-30: rgba(255,255,255,0.30);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-deep: #F5F1E9;
+  --bg-card: #FFFFFF;
+  --bg-panel: #FBF8F3;
+  --bg-hover: #EFE9DE;
+  --img-bg: #EDE7DB;
+  --border: rgba(60,45,30,0.10);
+  --border-bright: rgba(60,45,30,0.22);
+  --accent: #A2561A;
+  --accent-dim: #D9A877;
+  --accent-glow: rgba(162,86,26,0.10);
+  --accent-bright: #8A4614;
+  --on-accent: #FFFFFF;
+  --red: #B3321F;
+  --green: #2F7A4B;
+  --text-primary: #2A231B;
+  --text-secondary: #5F574B;
+  --text-dim: #756C5F;
+  --header-bg: rgba(245,241,233,0.86);
+  --nav-bg: rgba(255,255,255,0.90);
+  --overlay: rgba(36,26,16,0.42);
+  --badge-bg: rgba(255,255,255,0.86);
+  --toast-bg: #2A231B;
+  --toast-fg: #F5F1E9;
+  --shadow-sm: 0 1px 2px rgba(60,40,20,0.06);
+  --shadow-md: 0 10px 30px rgba(60,40,20,0.12);
+  --shadow-lg: 0 24px 64px rgba(40,25,10,0.24);
+  --ink-04: rgba(60,45,30,0.05);
+  --ink-06: rgba(60,45,30,0.07);
+  --ink-10: rgba(60,45,30,0.11);
+  --ink-15: rgba(60,45,30,0.16);
+  --ink-20: rgba(60,45,30,0.22);
+  --ink-30: rgba(60,45,30,0.32);
+}
+:root {
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --heading: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --ease: cubic-bezier(0.25, 1, 0.5, 1);
-  --radius: 14px;
-  --radius-sm: 10px;
-  --radius-lg: 18px;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --radius-lg: 22px;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-
-html { -webkit-font-smoothing: antialiased; }
+html { -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
+button { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 body {
   background: var(--bg-deep);
   color: var(--text-primary);
   font-family: var(--body);
-  min-height: 100vh;
+  line-height: 1.4;
+  min-height: 100vh; min-height: 100dvh;
   overflow-x: hidden;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  padding-bottom: calc(92px + env(safe-area-inset-bottom));
   overscroll-behavior-y: none;
 }
-
-body::before {
-  content:'';
-  position:fixed; inset:0;
-  background-image:
-    linear-gradient(rgba(201,123,58,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(201,123,58,0.02) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events:none; z-index:0;
-}
+body.modal-open { overflow: hidden; }
 
 /* ── HEADER ── */
 header {
-  position: sticky; top:0; z-index:90;
-  background: rgba(10,10,12,0.9);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  position: sticky; top: 0; z-index: 90;
+  background: var(--header-bg);
+  backdrop-filter: saturate(1.6) blur(22px); -webkit-backdrop-filter: saturate(1.6) blur(22px);
   border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; justify-content: center;
-  padding: calc(8px + env(safe-area-inset-top)) 16px 8px; gap: 6px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 18px 10px;
+  min-height: 58px;
 }
-.header-row1 { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.header-row2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .logo {
-  font-family: var(--heading);
-  font-size: 24px; letter-spacing:0.5px;
-  color: var(--accent);
-  text-shadow: 0 0 20px rgba(201,123,58,0.5);
-  position: relative;
+  font-family: var(--heading); font-size: 22px; font-weight: 750; letter-spacing: -0.02em;
+  color: var(--text-primary); line-height: 1.05;
 }
-.logo::before {
-  content: '';
-  position: absolute;
-  inset: -8px -16px;
-  background: radial-gradient(ellipse at 40% 50%, rgba(201,123,58,0.18) 0%, rgba(201,123,58,0.06) 45%, transparent 72%);
-  border-radius:16px;
-  pointer-events: none;
-  z-index: -1;
-}
-.logo span { color:var(--text-dim); font-size:10px; font-family:var(--mono); display:block; letter-spacing:0.3px; margin-top:-4px; }
-.header-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
-.count-badge {
-  font-family:var(--mono); font-size:11px;
-  color:var(--accent); background:var(--accent-glow);
-  border:1px solid var(--accent-dim); padding:3px 10px; border-radius:14px;
-}
-.stat-badge {
-  font-family:var(--mono); font-size:11px;
-  color:var(--text-secondary); background:var(--bg-card);
-  border:1px solid var(--border); padding:3px 10px; border-radius:14px; white-space:nowrap;
-}
-.stat-badge span { color:var(--accent); }
-.stat-badge.clickable { cursor:pointer; transition:border-color .2s, color .2s; }
-.stat-badge.clickable:hover { border-color:var(--accent); color:var(--text-primary); }
-.stat-badge.active { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+.logo i { font-style: normal; color: var(--accent); }
+.logo span { display: block; font-family: var(--body); font-size: 11px; font-weight: 500; letter-spacing: 0; color: var(--text-dim); margin-top: 3px; }
+.header-actions { display: none; gap: 8px; align-items: center; flex-shrink: 0; }
+body[data-page="inventory"] .header-actions { display: flex; }
 
 /* ── BUTTONS ── */
 .btn {
-  font-family:var(--body); font-weight:600; font-size:13px;
-  letter-spacing:0.3px;
-  padding:8px 16px; border:1px solid var(--border-bright);
-  background:transparent; color:var(--text-secondary);
-  cursor:pointer; border-radius:var(--radius-sm); transition:all .2s var(--ease); white-space:nowrap;
-  touch-action: manipulation;
+  font-family: var(--body); font-weight: 600; font-size: 14px; letter-spacing: 0;
+  padding: 9px 18px; min-height: 40px;
+  border: 1px solid var(--border-bright);
+  background: transparent; color: var(--text-primary);
+  cursor: pointer; border-radius: 999px;
+  transition: background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease), transform .15s var(--ease), filter .2s;
+  white-space: nowrap; touch-action: manipulation;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
-.btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
-.btn:active { transform: scale(.96); }
-.btn-primary { background:var(--accent); color:#0A0A0C; border-color:var(--accent); font-weight:700; }
-.btn-primary:hover { background:#e0c157; border-color:#e0c157; color:#0A0A0C; }
-.btn-danger { border-color:var(--red); color:var(--red); }
-.btn-danger:hover { background:rgba(192,57,43,0.15); }
-.btn-sm { padding:5px 10px; font-size:11px; }
-.btn-icon { padding:8px 10px; font-size:16px; }
+@media (hover:hover) { .btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); } }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; }
+@media (hover:hover) { .btn-primary:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); filter: brightness(1.1); } }
+.btn-danger { border-color: color-mix(in srgb, var(--red) 55%, transparent); color: var(--red); }
+@media (hover:hover) { .btn-danger:hover { border-color: var(--red); color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); } }
+.btn-sm { padding: 6px 13px; font-size: 13px; min-height: 34px; }
+.btn-icon { padding: 8px 10px; font-size: 16px; }
+.btn-block { width: 100%; }
 
-/* ── NAV TABS (fixed bottom bar, iOS-style) ── */
-.nav-tabs {
-  display:flex; gap:0;
-  position:fixed; left:0; right:0; bottom:0; z-index:100;
-  background:rgba(28,28,30,0.85);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-top:1px solid var(--border);
-  padding:6px 8px calc(6px + env(safe-area-inset-bottom));
-  justify-content: space-around;
+/* ── BOTTOM TAB BAR ── */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
+  display: flex; align-items: flex-end; justify-content: space-around;
+  background: var(--nav-bg);
+  backdrop-filter: saturate(1.6) blur(22px); -webkit-backdrop-filter: saturate(1.6) blur(22px);
+  border-top: 1px solid var(--border);
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
 }
-.nav-tab {
-  font-family:var(--body); font-weight:600; font-size:11px; letter-spacing:0.2px;
-  flex:1; text-align:center;
-  padding:8px 6px; cursor:pointer; color:var(--text-dim);
-  border-radius: var(--radius-sm);
-  transition: color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+.tab {
+  flex: 1; max-width: 96px; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 2px 3px; background: none; border: none; border-radius: 14px;
+  color: var(--text-dim); font: 600 11px/1.2 var(--body); letter-spacing: 0.01em;
+  cursor: pointer; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  transition: color .2s var(--ease), transform .15s var(--ease);
 }
-.nav-tab:hover { color:var(--text-secondary); }
-.nav-tab.active { color:var(--accent); background:var(--accent-glow); }
-.nav-tab:active { transform: scale(.94); }
+.tab .ico { display: block; height: 24px; }
+.tab .ico svg { width: 24px; height: 24px; display: block; }
+.tab > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab.active { color: var(--accent); }
+.tab:active { transform: scale(.93); }
+@media (hover:hover) { .tab:hover { color: var(--text-secondary); } .tab.active:hover { color: var(--accent); } }
+.tab-scan { color: var(--text-secondary); }
+.tab-scan .scan-disc {
+  width: 54px; height: 54px; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center;
+  margin-top: -24px;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 42%, transparent), 0 0 0 4px var(--bg-deep);
+}
+.tab-scan .scan-disc svg { width: 26px; height: 26px; }
+@media (min-width: 700px) {
+  .tabbar {
+    left: 50%; right: auto; transform: translateX(-50%);
+    width: min(540px, calc(100% - 32px)); bottom: calc(12px + env(safe-area-inset-bottom));
+    border: 1px solid var(--border); border-radius: 28px;
+    padding: 6px 10px; box-shadow: var(--shadow-md);
+  }
+}
 
 /* ── MAIN LAYOUT ── */
-.main { position:relative; z-index:1; padding:24px; max-width:1400px; margin:0 auto; }
-.screen { display:none; }
-.screen.active { display:block; }
+.main { position: relative; z-index: 1; padding: 18px 18px 8px; max-width: 1200px; margin: 0 auto; }
+.screen { display: none; }
+.screen.active { display: block; animation: screenIn .25s var(--ease); }
+@keyframes screenIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── PAGES (settings, backup, tools titles) ── */
+.page { max-width: 720px; margin: 0 auto; padding: 6px 0 24px; }
+.page-title { font: 750 30px/1.1 var(--heading); letter-spacing: -0.02em; margin: 6px 0 4px; }
+.page-sub { color: var(--text-secondary); font-size: 14px; line-height: 1.55; margin-bottom: 8px; }
+.back-link {
+  display: inline-flex; align-items: center; gap: 4px; background: none; border: none;
+  color: var(--accent); font: 600 15px var(--body); cursor: pointer; padding: 6px 0; margin-bottom: 2px;
+}
+.group-label { font: 700 12px var(--body); letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-dim); margin: 26px 6px 8px; }
+.group { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.row {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 14px 16px; background: none; color: inherit; font: inherit;
+  border: none; border-bottom: 1px solid var(--border); -webkit-appearance: none; appearance: none;
+}
+.row:last-child { border-bottom: none; }
+.row.col { flex-direction: column; align-items: stretch; gap: 10px; }
+.row-btn { cursor: pointer; transition: background .15s; }
+@media (hover:hover) { .row-btn:hover { background: var(--bg-hover); } }
+.row-btn:active { background: var(--bg-hover); }
+.row-main { flex: 1; min-width: 0; }
+.row-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.row-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; line-height: 1.45; }
+.row-ico { width: 34px; height: 34px; border-radius: 10px; background: var(--accent-glow); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.row-ico svg { width: 19px; height: 19px; }
+.chev { color: var(--text-dim); font-size: 22px; line-height: 1; }
+.row.danger .row-title { color: var(--red); }
+.row-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+.row-note a { color: var(--accent); text-underline-offset: 3px; }
+.seg { display: inline-flex; background: var(--bg-hover); border-radius: 999px; padding: 3px; flex-shrink: 0; }
+.seg button { border: none; background: none; color: var(--text-secondary); font: 600 13px var(--body); padding: 7px 13px; border-radius: 999px; cursor: pointer; transition: background .2s, color .2s; }
+.seg button.on { background: var(--bg-card); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+:root[data-theme="dark"] .seg button.on, .force-dark .seg button.on { background: var(--bg-deep); }
+.status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); margin-right: 8px; vertical-align: 1px; }
+.status-dot.on { background: var(--green); }
+.status-dot.off { background: var(--red); }
+
+/* ── COLLECTION SUMMARY ── */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; text-align: left; color: inherit; font: inherit; min-width: 0; -webkit-appearance: none; appearance: none; }
+.stat-num { font: 750 clamp(18px, 5.2vw, 24px)/1.1 var(--heading); letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; }
+.stat.clickable { cursor: pointer; transition: border-color .2s, background .2s; }
+@media (hover:hover) { .stat.clickable:hover { border-color: var(--accent-dim); } }
+.stat.active { border-color: var(--accent); background: var(--accent-glow); }
+.stat.active .stat-num { color: var(--accent); }
 
 /* ── TOOLBAR ── */
-.toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+.search-wrap { position: relative; flex: 1; min-width: 0; }
+[data-ico] { display: inline-flex; }
+.search-wrap > [data-ico] { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-dim); pointer-events: none; }
+.search-wrap svg { width: 18px; height: 18px; }
 .search-box {
-  flex:1; min-width:200px; background:var(--bg-card); border:1px solid var(--border);
-  color:var(--text-primary); font-family:var(--mono); font-size:13px;
-  padding:8px 14px; border-radius:14px; outline:none; transition:border-color .2s;
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-primary); font-family: var(--body); font-size: 16px;
+  padding: 11px 14px 11px 40px; border-radius: 999px; outline: none; transition: border-color .2s, box-shadow .2s;
+  -webkit-appearance: none; appearance: none;
 }
-.search-box:focus { border-color:var(--accent); }
-.search-box::placeholder { color:var(--text-dim); }
+.search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.search-box::placeholder { color: var(--text-dim); }
+.filter-btn { position: relative; padding: 9px 14px; }
+.filter-btn svg { width: 18px; height: 18px; }
+.filter-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--on-accent); font: 700 11px/18px var(--body); text-align: center; display: none; }
+.filter-count.show { display: inline-block; }
+.filter-panel { display: none; gap: 10px; margin-bottom: 14px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+.filter-panel.open { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 select.filter-select {
-  background:var(--bg-card); border:1px solid var(--border); color:var(--text-secondary);
-  font-family:var(--body); font-size:13px; font-weight:600;
-  padding:8px 12px; border-radius:14px; cursor:pointer; outline:none;
+  background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-primary);
+  font-family: var(--body); font-size: 15px; font-weight: 500;
+  padding: 10px 12px; border-radius: 12px; cursor: pointer; outline: none; width: 100%;
 }
+select.filter-select:focus { border-color: var(--accent); }
+.view-toggle { display: flex; gap: 2px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px; padding: 3px; flex-shrink: 0; }
+.view-btn { background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: 999px; color: var(--text-dim); font-size: 15px; transition: all .15s; line-height: 1; }
+@media (hover:hover) { .view-btn:hover { color: var(--text-secondary); background: var(--bg-hover); } }
+.view-btn.active { background: var(--accent); color: var(--on-accent); }
 
-/* ── VIEW TOGGLE ── */
-.view-toggle { display:flex; gap:2px; background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:2px; }
-.view-btn {
-  background:none; border:none; cursor:pointer; padding:5px 9px; border-radius:14px;
-  color:var(--text-dim); font-size:15px; transition:all .15s; line-height:1;
-}
-.view-btn:hover { color:var(--text-secondary); background:var(--bg-hover); }
-.view-btn.active { background:var(--accent); color:#0A0A0C; }
-
-/* ── GRID ── */
-.inventory-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:16px; }
-.inventory-grid.view-small { grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:10px; }
-.inventory-grid.view-small .inst-card-img { height:100px; }
-.inventory-grid.view-small .inst-card-body { padding:10px; }
-.inventory-grid.view-small .inst-card-name { font-size:14px; }
-.inventory-grid.view-small .inst-card-brand { font-size:10px; }
-.inventory-grid.view-small .inst-card-meta { display:none; }
-.inventory-grid.view-small .inst-card-serial { display:none; }
-.inventory-grid.view-list { grid-template-columns:1fr; gap:6px; }
-.inventory-grid.view-list .inst-card { display:grid; grid-template-columns:90px 1fr auto; align-items:center; }
-.inventory-grid.view-list .inst-card-img { height:70px; width:90px; border-radius:0; flex-shrink:0; }
-.inventory-grid.view-list .inst-card-body { padding:10px 14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-.inventory-grid.view-list .inst-card-name { font-size:16px; white-space:nowrap; }
-.inventory-grid.view-list .inst-card-brand { margin-top:0; }
-.inventory-grid.view-list .inst-card-name-block { display:flex; flex-direction:column; min-width:160px; }
-.inventory-grid.view-list .inst-card-meta { margin-top:0; }
-.inventory-grid.view-list .inst-card-serial { margin-top:0; }
-.inventory-grid.view-list .list-arrow { padding:0 16px; color:var(--text-dim); font-size:18px; align-self:stretch; display:flex; align-items:center; }
-.inventory-grid.view-list .inst-card:hover .list-arrow { color:var(--accent); }
+/* ── GRID / CARDS ── */
+.inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.inventory-grid.view-small { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.inventory-grid.view-small .inst-card-img { height: auto; aspect-ratio: 1/1; }
+.inventory-grid.view-small .inst-card-body { padding: 10px 12px 12px; }
+.inventory-grid.view-small .inst-card-name { font-size: 14px; }
+.inventory-grid.view-small .inst-card-brand { font-size: 10px; }
+.inventory-grid.view-small .inst-card-meta { display: none; }
+.inventory-grid.view-small .inst-card-serial { display: none; }
+.inventory-grid.view-list { grid-template-columns: 1fr; gap: 8px; }
+.inventory-grid.view-list .inst-card { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; }
+.inventory-grid.view-list .inst-card-img { height: 72px; width: 84px; aspect-ratio: auto; flex-shrink: 0; }
+.inventory-grid.view-list .inst-card-body { padding: 10px 14px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; }
+.inventory-grid.view-list .inst-card-name { font-size: 16px; }
+.inventory-grid.view-list .inst-card-brand { margin-top: 0; }
+.inventory-grid.view-list .inst-card-name-block { display: flex; flex-direction: column; min-width: 140px; }
+.inventory-grid.view-list .inst-card-meta { margin-top: 0; }
+.inventory-grid.view-list .inst-card-serial { margin-top: 0; }
+.inventory-grid.view-list .type-badge { display: none; }
+.inventory-grid.view-list .list-arrow { padding: 0 16px; color: var(--text-dim); font-size: 20px; align-self: stretch; display: flex; align-items: center; }
+@media (hover:hover) { .inventory-grid.view-list .inst-card:hover .list-arrow { color: var(--accent); } }
 
 .inst-card {
-  background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
-  overflow:hidden; cursor:pointer; transition:all .25s; position:relative;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  overflow: hidden; cursor: pointer; position: relative; box-shadow: var(--shadow-sm);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s;
 }
-.inst-card:hover {
-  border-color:var(--accent);
-  box-shadow:0 0 20px rgba(201,123,58,0.14), 0 4px 20px rgba(0,0,0,0.4);
-  transform:translateY(-2px);
-}
+@media (hover:hover) { .inst-card:hover { border-color: var(--accent-dim); box-shadow: var(--shadow-md); transform: translateY(-2px); } }
+.inst-card:active { transform: scale(.985); }
 .inst-card-img {
-  width:100%; height:160px; background:var(--bg-panel);
-  display:flex; align-items:center; justify-content:center;
-  overflow:hidden; position:relative;
+  width: 100%; height: auto; aspect-ratio: 4/3; background: var(--img-bg);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
 }
-.inst-card-img img { width:100%; height:100%; object-fit:cover; }
-.inst-card-img .no-img { font-size:48px; opacity:.2; }
-.inst-card-img .logo-img { width:70%; max-height:70%; object-fit:contain; opacity:.75; filter:grayscale(30%); transition:opacity .2s; }
+.inst-card-img img { width: 100%; height: 100%; object-fit: cover; }
+.inst-card-img .no-img { font-size: 44px; opacity: .35; }
+.inst-card-img .logo-img { width: 70%; max-height: 70%; object-fit: contain; opacity: .75; filter: grayscale(30%); transition: opacity .2s; }
 .inst-card-img .type-badge {
-  position:absolute; top:8px; left:8px;
-  font-family:var(--mono); font-size:10px;
-  background:rgba(10,11,13,0.85); border:1px solid var(--border-bright);
-  color:var(--accent); padding:3px 7px; border-radius:14px;
+  position: absolute; top: 10px; left: 10px;
+  font: 700 10px var(--body); letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--badge-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  color: var(--accent); padding: 4px 10px; border-radius: 999px;
 }
-.inst-card-body { padding:14px; }
-.inst-card-name { font-family:var(--heading); font-size:20px; letter-spacing:1px; color:var(--text-primary); line-height:1.1; }
-.inst-card-brand { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:0.3px; text-transform:uppercase; margin-top:2px; }
-.inst-card-meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-.meta-chip { font-family:var(--mono); font-size:10px; padding:3px 8px; background:var(--bg-panel); border:1px solid var(--border); border-radius:14px; color:var(--text-secondary); }
-.inst-card-serial { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-top:8px; }
+.inst-card-body { padding: 14px 16px 16px; }
+.inst-card-name { font-family: var(--heading); font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); line-height: 1.22; margin-top: 2px; }
+.inst-card-brand { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.07em; text-transform: uppercase; }
+.inst-card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.meta-chip { font: 600 11.5px var(--body); padding: 3px 9px; background: var(--bg-hover); border-radius: 999px; color: var(--text-secondary); }
+.inst-card-serial { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); margin-top: 10px; }
 
 /* ── EMPTY STATE ── */
-.empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; color:var(--text-dim); }
-.empty-icon { font-size:64px; margin-bottom:16px; opacity:.3; }
-.empty-state h3 { font-family:var(--heading); font-size:28px; letter-spacing:0.4px; margin-bottom:8px; }
-.empty-state p { font-size:14px; }
+.empty-state { grid-column: 1/-1; text-align: center; padding: 48px 20px; color: var(--text-secondary); }
+.empty-art { width: 84px; height: 84px; margin: 0 auto 18px; border-radius: 26px; background: var(--accent-glow); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+.empty-art svg { width: 42px; height: 42px; }
+.empty-state h3 { font: 750 22px var(--heading); letter-spacing: -0.02em; color: var(--text-primary); margin-bottom: 6px; }
+.empty-state p { font-size: 15px; line-height: 1.55; max-width: 340px; margin: 0 auto; }
+.empty-actions { display: flex; flex-direction: column; gap: 10px; max-width: 280px; margin: 22px auto 0; }
 
-/* ── MODAL ── */
+/* ── MODAL / SHEET ── */
 .modal-overlay {
-  display:none; position:fixed; inset:0; z-index:200;
-  background:rgba(0,0,0,0.85); backdrop-filter:blur(4px);
-  align-items:center; justify-content:center; padding:16px;
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: var(--overlay); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 16px;
 }
-.modal-overlay.open { display:flex; }
+.modal-overlay.open { display: flex; }
 .modal {
-  background:var(--bg-panel); border:1px solid var(--border-bright);
-  border-radius:16px; width:100%; max-width:680px;
-  max-height:90vh; overflow-y:auto;
-  box-shadow:0 20px 60px rgba(0,0,0,0.7);
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); width: 100%; max-width: 680px;
+  max-height: 90vh; max-height: 90dvh; overflow-y: auto;
+  box-shadow: var(--shadow-lg); animation: modalIn .22s var(--ease);
+}
+@keyframes modalIn { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@media (max-width: 640px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal { max-width: none !important; border-radius: 24px 24px 0 0; max-height: 92vh; max-height: 92dvh; padding-bottom: env(safe-area-inset-bottom); animation: sheetUp .3s var(--ease); }
 }
 .modal-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:16px 24px; border-bottom:1px solid var(--border);
-  position:sticky; top:0; background:var(--bg-panel); z-index:1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg-panel); z-index: 1;
 }
-.modal-title { font-family:var(--heading); font-size:20px; letter-spacing:0.4px; color:var(--accent); }
-.modal-close { background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; padding:4px 8px; border-radius:14px; }
-.modal-close:hover { color:var(--text-primary); background:var(--bg-hover); }
-.modal-body { padding:24px; }
-.modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+.modal-title { font: 700 18px var(--heading); letter-spacing: -0.01em; color: var(--text-primary); }
+.modal-close { background: var(--bg-hover); border: none; color: var(--text-secondary); font-size: 14px; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+@media (hover:hover) { .modal-close:hover { color: var(--text-primary); } }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+.confirm-body { padding: 22px 22px 8px; }
+.confirm-body h3 { font: 700 18px var(--heading); letter-spacing: -0.01em; margin-bottom: 8px; }
+.confirm-body p { font-size: 14.5px; line-height: 1.55; color: var(--text-secondary); }
+.pick { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border: none; background: none; color: inherit; font: inherit; text-align: left; border-radius: 14px; cursor: pointer; }
+@media (hover:hover) { .pick:hover { background: var(--bg-hover); } }
+.pick.sel { background: var(--accent-glow); }
+.pick .row-ico { width: 38px; height: 38px; }
+.pick .check { margin-left: auto; color: var(--accent); font-weight: 700; }
 
 /* ── FORM ── */
-.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-.form-group { display:flex; flex-direction:column; gap:6px; }
-.form-group.full { grid-column:1/-1; }
-.form-label { font-family:var(--mono); font-size:10px; letter-spacing:0.3px; color:var(--accent); text-transform:uppercase; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1/-1; }
+.form-label { font-family: var(--body); font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; color: var(--text-secondary); }
 .form-input, .form-select, .form-textarea {
-  background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary);
-  font-family:var(--body); font-size:15px; font-weight:500;
-  padding:10px 12px; border-radius:14px; outline:none; transition:border-color .2s; width:100%;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);
+  font-family: var(--body); font-size: 16px; font-weight: 500;
+  padding: 11px 14px; border-radius: 12px; outline: none; transition: border-color .2s, box-shadow .2s; width: 100%;
 }
-.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--accent); }
-.form-textarea { resize:vertical; min-height:80px; font-size:14px; }
-.form-select option { background:var(--bg-panel); }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.form-textarea { resize: vertical; min-height: 80px; font-size: 15px; }
+.form-select option { background: var(--bg-panel); }
 
 /* ── DETAIL VIEW ── */
 .detail-back {
-  display:flex; align-items:center; gap:8px;
-  font-family:var(--mono); font-size:12px; letter-spacing:1px;
-  color:var(--text-secondary); cursor:pointer; margin-bottom:20px; width:fit-content;
+  display: inline-flex; align-items: center; gap: 4px;
+  font: 600 15px var(--body); color: var(--accent); cursor: pointer; margin-bottom: 16px; width: fit-content; padding: 4px 0;
 }
-.detail-back:hover { color:var(--accent); }
-#detailPrevBtn:hover, #detailNextBtn:hover { border-color:var(--accent); color:var(--accent); }
-#detailPrevBtn:disabled, #detailNextBtn:disabled { opacity:.3; cursor:default; }
-.detail-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,380px); gap:24px; margin-bottom:24px; }
-@media (max-width:900px) { .detail-hero { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr; } }
-.detail-img-wrap { border:1px solid var(--border); border-radius:14px; overflow:hidden; }
-.detail-img-panel { background:var(--bg-card); aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-.detail-img-panel img { width:100%; height:100%; object-fit:cover; }
-.detail-img-placeholder { font-size:80px; opacity:.15; }
+#detailPrevBtn:disabled, #detailNextBtn:disabled { opacity: .3; cursor: default; }
+.detail-hero { display: grid; grid-template-columns: minmax(0,1fr) minmax(280px,380px); gap: 24px; margin-bottom: 24px; }
+@media (max-width: 900px) { .detail-hero { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } }
+.detail-img-wrap { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-card); }
+.detail-img-panel { background: var(--img-bg); aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.detail-img-panel img { width: 100%; height: 100%; object-fit: contain; }
+.detail-img-placeholder { font-size: 80px; opacity: .25; }
 .detail-img-upload-btn {
-  display:block; width:100%; box-sizing:border-box;
-  background:rgba(10,11,13,0.82); border:1px solid var(--border-bright); border-top:none;
-  color:var(--accent); font-family:var(--mono); font-size:11px; letter-spacing:0.3px;
-  text-align:center; padding:9px; cursor:pointer; transition:background .2s;
+  display: block; width: 100%; box-sizing: border-box;
+  background: var(--bg-card); border: none; border-top: 1px solid var(--border);
+  color: var(--accent); font: 600 13px var(--body);
+  text-align: center; padding: 11px; cursor: pointer; transition: background .2s;
 }
-.detail-img-upload-btn:first-of-type { border-top:1px solid var(--border-bright); }
-.detail-img-upload-btn:hover { background:rgba(201,123,58,0.20); }
-.detail-info-panel { display:flex; flex-direction:column; gap:16px; }
-.detail-name { font-family:var(--heading); font-size:42px; letter-spacing:0.3px; line-height:1; color:var(--text-primary); }
-.detail-brand { font-family:var(--mono); font-size:12px; letter-spacing:0.4px; color:var(--accent); text-transform:uppercase; }
-.detail-specs-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.spec-row { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:10px 12px; }
-.spec-label { font-family:var(--mono); font-size:9px; letter-spacing:0.3px; color:var(--text-dim); }
-.spec-value { font-size:15px; font-weight:600; color:var(--text-primary); margin-top:2px; }
-.detail-description { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; font-size:15px; line-height:1.7; color:var(--text-secondary); }
-.section-title { font-family:var(--heading); font-size:20px; letter-spacing:0.3px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px; }
-.ai-loading { display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:12px; color:var(--text-dim); }
-.ai-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); animation:pulse 1s infinite; }
-.ai-dot:nth-child(2) { animation-delay:.2s; }
-.ai-dot:nth-child(3) { animation-delay:.4s; }
-@keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
-.detail-actions { display:flex; gap:10px; flex-wrap:wrap; }
+@media (hover:hover) { .detail-img-upload-btn:hover { background: var(--accent-glow); } }
+.detail-info-panel { display: flex; flex-direction: column; gap: 16px; }
+.detail-name { font-family: var(--heading); font-size: 34px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.05; color: var(--text-primary); }
+.detail-brand { font: 700 12px var(--body); letter-spacing: 0.08em; color: var(--accent); text-transform: uppercase; }
+.detail-specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.spec-row { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; }
+.spec-label { font: 700 10.5px var(--body); letter-spacing: 0.06em; color: var(--text-dim); text-transform: uppercase; }
+.spec-value { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-top: 3px; }
+.detail-description { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; font-size: 15px; line-height: 1.7; color: var(--text-secondary); }
+.section-title { font: 700 18px var(--heading); letter-spacing: -0.01em; color: var(--text-primary); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.ai-loading { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-dim); }
+.ai-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1s infinite; }
+.ai-dot:nth-child(2) { animation-delay: .2s; }
+.ai-dot:nth-child(3) { animation-delay: .4s; }
+@keyframes pulse { 0%,100% { opacity: .3 } 50% { opacity: 1 } }
+.detail-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ── SERVICE / MODS / GEAR PANELS ── */
-.smg-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:20px; }
-@media (max-width:900px) { .smg-grid { grid-template-columns:1fr; } }
-.smg-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:16px; }
-.smg-title { font-family:var(--heading); font-size:16px; letter-spacing:0.3px; color:var(--accent); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px; }
-.smg-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px; }
-.smg-row input[type=checkbox] { accent-color:var(--accent); width:15px; height:15px; cursor:pointer; flex-shrink:0; }
-.smg-row label { cursor:pointer; color:var(--text-secondary); line-height:1.3; }
-.smg-input { background:var(--bg-panel); border:1px solid var(--border); color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:5px 8px; border-radius:14px; width:100%; box-sizing:border-box; }
-.smg-input:focus { outline:none; border-color:var(--accent); }
-.smg-counter { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
-.smg-counter-btn { background:var(--bg-panel); border:1px solid var(--border); color:var(--accent); font-family:var(--mono); font-size:16px; width:30px; height:30px; cursor:pointer; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.smg-counter-btn:hover { border-color:var(--accent); background:var(--bg-card); }
-.smg-total { font-family:var(--mono); font-size:22px; color:var(--accent); font-weight:bold; min-width:60px; }
-.smg-log-entry { font-family:var(--mono); font-size:10px; color:var(--text-dim); border-bottom:1px solid var(--border); padding:4px 0; line-height:1.5; }
-.smg-save-btn { background:var(--accent); border:none; color:#0A0A0C; font-family:var(--heading); font-size:13px; letter-spacing:1px; padding:6px 14px; border-radius:14px; cursor:pointer; margin-top:8px; width:100%; }
-.smg-save-btn:hover { opacity:.85; }
+.smg-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px; }
+@media (max-width: 900px) { .smg-grid { grid-template-columns: 1fr; } }
+.smg-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.smg-title { font: 700 16px var(--heading); letter-spacing: -0.01em; color: var(--text-primary); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.smg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+.smg-row input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+.smg-row label { cursor: pointer; color: var(--text-secondary); line-height: 1.3; }
+.smg-input { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-primary); font-family: var(--body); font-size: 14px; padding: 7px 10px; border-radius: 10px; width: 100%; box-sizing: border-box; }
+.smg-input:focus { outline: none; border-color: var(--accent); }
+.smg-counter { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.smg-counter-btn { background: var(--bg-panel); border: 1px solid var(--border); color: var(--accent); font-size: 18px; width: 34px; height: 34px; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+@media (hover:hover) { .smg-counter-btn:hover { border-color: var(--accent); background: var(--bg-card); } }
+.smg-total { font: 750 24px var(--heading); color: var(--accent); min-width: 60px; }
+.smg-log-entry { font-size: 12px; color: var(--text-dim); border-bottom: 1px solid var(--border); padding: 5px 0; line-height: 1.5; }
+.smg-save-btn { background: var(--accent); border: none; color: var(--on-accent); font: 700 13px var(--body); padding: 9px 14px; border-radius: 999px; cursor: pointer; margin-top: 8px; width: 100%; }
+.smg-save-btn:hover { filter: brightness(1.08); }
 
 /* ── CAMERA MODAL ── */
-.camera-container { position:relative; background:#000; border-radius:14px; overflow:hidden; margin-bottom:16px; }
-#cameraFeed { width:100%; display:block; max-height:65vh; object-fit:contain; background:#000; }
-.camera-overlay { position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; }
-
-/* Portrait scan frame — tall rectangle suits instrument labels & headstocks */
+.camera-container { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+#cameraFeed { width: 100%; display: block; max-height: 65vh; object-fit: contain; background: #000; }
+.camera-overlay { position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; }
 .scan-frame {
-  width:60%; max-width:280px; aspect-ratio:3/4;
-  border:2px solid var(--accent); border-radius:14px;
-  box-shadow:0 0 0 2000px rgba(0,0,0,0.5); position:relative;
+  width: 60%; max-width: 280px; aspect-ratio: 3/4;
+  border: 2px solid var(--accent-bright); border-radius: 18px;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.5); position: relative;
 }
-/* Landscape scan frame override */
-.scan-frame.landscape {
-  width:80%; max-width:420px; aspect-ratio:4/3;
-}
+.scan-frame.landscape { width: 80%; max-width: 420px; aspect-ratio: 4/3; }
 .scan-frame-label {
-  position:absolute; bottom:-24px; left:50%; transform:translateX(-50%);
-  font-family:var(--mono); font-size:9px; letter-spacing:0.3px;
-  color:var(--accent); white-space:nowrap;
+  position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%);
+  font: 600 11px var(--body); letter-spacing: 0.04em; color: #fff; white-space: nowrap;
 }
-.scan-line { position:absolute; left:0; right:0; height:2px; background:var(--accent); box-shadow:0 0 10px var(--accent); animation:scanLine 2s linear infinite; }
-@keyframes scanLine { 0%{top:0} 100%{top:100%} }
-.camera-status { font-family:var(--mono); font-size:12px; text-align:center; color:var(--text-secondary); padding:8px; }
-#captureCanvas { display:none; }
-.ocr-result { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:14px; font-family:var(--mono); font-size:12px; color:var(--text-secondary); max-height:120px; overflow-y:auto; white-space:pre-wrap; }
+.scan-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--accent-bright); box-shadow: 0 0 10px var(--accent-bright); animation: scanLine 2s linear infinite; }
+@keyframes scanLine { 0% { top: 0 } 100% { top: 100% } }
+.camera-status { font-size: 13px; text-align: center; color: var(--text-secondary); padding: 8px; }
+#captureCanvas { display: none; }
+.ocr-result { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; font-family: var(--mono); font-size: 12px; color: var(--text-secondary); max-height: 120px; overflow-y: auto; white-space: pre-wrap; }
 
-/* ── IMPORT/EXPORT ── */
-.ie-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-@media (max-width:700px) { .ie-grid { grid-template-columns:1fr; } }
-.ie-card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px; }
-.ie-card h3 { font-family:var(--heading); font-size:22px; letter-spacing:0.3px; color:var(--accent); margin-bottom:8px; }
-.ie-card p { font-size:14px; color:var(--text-secondary); line-height:1.6; margin-bottom:20px; }
-.ie-drop-zone { border:2px dashed var(--border-bright); border-radius:14px; padding:40px 20px; text-align:center; cursor:pointer; transition:all .2s; color:var(--text-dim); font-size:14px; }
-.ie-drop-zone:hover, .ie-drop-zone.drag-over { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
-.ie-drop-icon { font-size:36px; margin-bottom:10px; }
+/* ── BACKUP & RESTORE ── */
+.ie-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .ie-grid { grid-template-columns: 1fr; } }
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.card h3 { font: 700 17px var(--heading); letter-spacing: -0.01em; color: var(--text-primary); margin-bottom: 6px; }
+.card p { font-size: 14px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 14px; }
+.card .btn + .btn { margin-top: 8px; }
+.ie-drop-zone { border: 1.5px dashed var(--border-bright); border-radius: var(--radius); padding: 26px 16px; text-align: center; cursor: pointer; transition: all .2s; color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
+.ie-drop-zone small { color: var(--text-dim); }
+.ie-drop-zone:hover, .ie-drop-zone.drag-over { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.ie-drop-icon { font-size: 30px; margin-bottom: 8px; }
+.preview-pill { display: none; margin-top: 10px; padding: 10px 14px; background: var(--accent-glow); border-radius: 12px; font-size: 13px; font-weight: 600; color: var(--accent); }
+.check-row { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+.check-row input { accent-color: var(--accent); margin-top: 2px; width: 16px; height: 16px; flex-shrink: 0; }
 
 /* ── TOAST ── */
-.toast-container { position:fixed; bottom:24px; right:24px; z-index:999; display:flex; flex-direction:column; gap:8px; }
-.toast { background:var(--bg-panel); border:1px solid var(--border-bright); border-left:3px solid var(--accent); padding:12px 18px; border-radius:14px; font-size:14px; font-weight:600; animation:toastIn .3s ease; min-width:260px; display:flex; align-items:center; gap:10px; }
-.toast.error { border-left-color:var(--red); }
-.toast.success { border-left-color:var(--green); }
-@keyframes toastIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+.toast-container { position: fixed; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 999; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; padding: 0 16px; }
+.toast { pointer-events: auto; background: var(--toast-bg); color: var(--toast-fg); padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; animation: toastIn .28s var(--ease); max-width: min(440px, 100%); display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-md); }
+.toast::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-bright); flex-shrink: 0; }
+.toast.error::before { background: #FF7B6B; }
+.toast.success::before { background: #5DD28E; }
+@keyframes toastIn { from { transform: translateY(14px); opacity: 0 } to { transform: none; opacity: 1 } }
+@media (min-width: 700px) { .toast-container { bottom: calc(92px + env(safe-area-inset-bottom)); } }
 
-::-webkit-scrollbar { width:6px; }
-::-webkit-scrollbar-track { background:var(--bg-deep); }
-::-webkit-scrollbar-thumb { background:var(--border-bright); border-radius:14px; }
-::-webkit-scrollbar-thumb:hover { background:var(--accent-dim); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
 
 /* ── COLLECTIBILITY BADGE ── */
-.collect-badge {
-  display:inline-flex; align-items:center; gap:6px;
-  font-family:var(--mono); font-size:11px; letter-spacing:1px;
-  padding:4px 10px; border-radius:14px; border:1px solid;
+.collect-badge { display: inline-flex; align-items: center; gap: 6px; font: 700 11px var(--body); letter-spacing: 0.04em; padding: 4px 11px; border-radius: 999px; border: 1px solid; }
+.collect-high { color: var(--accent-bright); border-color: var(--accent-dim); background: var(--accent-glow); }
+.collect-med  { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.collect-low  { color: var(--text-secondary); border-color: var(--border-bright); background: var(--bg-card); }
+
+
+.fp-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.fp-field > span { font: 600 12px var(--body); color: var(--text-secondary); padding-left: 4px; }
+.seg-full { display: flex; width: 100%; }
+.seg-full button { flex: 1; padding: 9px 12px; }
+.laz-back { white-space: nowrap; flex-shrink: 0; }
+.laz-panel-title { line-height: 1.15; }
+.inventory-grid.view-list .inst-card-img { align-self: stretch; height: auto; min-height: 76px; }
+body.modal-open .toast-container { bottom: auto; top: calc(14px + env(safe-area-inset-top)); }
+.tab { font-size: 10.5px; }
+
+@media (max-width: 700px) { .practice-cols { grid-template-columns: 1fr !important; } .practice-clock { font-size: 64px; } .practice-timer-display { padding: 24px 16px; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
-.collect-high { color:#E8A55A; border-color:#C97B3A; background:rgba(201,123,58,0.12); }
-.collect-med  { color:#5ba85b; border-color:#4a9a6a; background:rgba(74,154,106,0.1); }
-.collect-low  { color:var(--text-secondary); border-color:var(--border-bright); background:var(--bg-card); }
 </style>
 </head>
-<body>
+<body data-page="inventory">
 
 <!-- ── HEADER ── -->
 <header>
-  <div class="header-row1">
-    <div class="logo">UNPLUGGED<span>INSTRUMENT VAULT  <b id="appVersion" style="font-weight:inherit">v2.5</b></span></div>
-    <div class="header-actions">
-      <button class="btn btn-sm" onclick="openCamera()">📷 SCAN</button>
-      <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ ADD</button>
-      <button class="btn btn-icon" id="gearBtn" onclick="gearClick()" title="Settings" aria-label="Settings">⚙</button>
-    </div>
-  </div>
-  <div class="header-row2">
-    <span class="count-badge" id="headerCount">0 INSTRUMENTS</span>
-    <span class="stat-badge">VAULT VALUE: <span id="vaultValue">$0</span></span>
-    <span class="stat-badge clickable" role="button" tabindex="0" id="headerGigs" onclick="toggleGigsFilter(this)" title="Filter instruments with gig log">GIGS: <span id="gigsTotal">0</span></span>
-    <span class="stat-badge clickable" role="button" tabindex="0" id="apiStatusBadge" onclick="gearClick()" title="Groq API status — click to open settings" style="cursor:pointer">
-      <span id="apiStatusDot">🔴</span> <span id="apiStatusText">API: NOT SET</span>
-    </span>
+  <div class="logo">Unplugged<i>.</i><span>Instrument collection · <b id="appVersion" style="font-weight:inherit">v2.6</b></span></div>
+  <div class="header-actions">
+    <button class="btn btn-primary btn-sm" type="button" onclick="openAddModal()" aria-label="Add instrument">＋ Add</button>
   </div>
 </header>
 
-<!-- ── NAV TABS ── -->
-<div class="nav-tabs">
-  <div class="nav-tab active" role="button" tabindex="0" data-screen="inventory" onclick="switchScreen('inventory',this)">VAULT</div>
-  <div class="nav-tab" role="button" tabindex="0" id="detailTab" style="display:none" data-screen="detail-screen" onclick="switchScreen('detail-screen',this)">DETAIL</div>
-  <div class="nav-tab" role="button" tabindex="0" data-screen="import-export" onclick="switchScreen('import-export',this)">IMPORT / EXPORT</div>
-  <div class="nav-tab" role="button" tabindex="0" id="lazTab" data-screen="laz" onclick="switchScreen('laz',this)">🛠 TOOLS</div>
-</div>
+<!-- ── BOTTOM TAB BAR ── -->
+<nav class="tabbar" aria-label="Main">
+  <button class="tab active" type="button" data-screen="inventory" onclick="switchScreen('inventory')"><span class="ico" data-ico="grid"></span><span>Collection</span></button>
+  <button class="tab" type="button" id="lazTab" data-screen="laz" onclick="switchScreen('laz')"><span class="ico" data-ico="tool"></span><span>Tools</span></button>
+  <button class="tab tab-scan" type="button" id="scanTab" onclick="openCamera()" aria-label="Scan an instrument"><span class="scan-disc"><span data-ico="camera"></span></span><span>Scan</span></button>
+  <button class="tab" type="button" id="quickTab" aria-label="Quick tool. Press and hold to change."><span class="ico" id="quickTabIco"></span><span id="quickTabLabel">Tuner</span></button>
+  <button class="tab" type="button" data-screen="settings" onclick="switchScreen('settings')"><span class="ico" data-ico="settings"></span><span>Settings</span></button>
+</nav>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <!--  SCREEN: INVENTORY                                     -->
@@ -427,45 +551,44 @@ select.filter-select {
 <div class="main">
 
 <div class="screen active" id="screen-inventory">
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="headerCount">0</div><div class="stat-label" id="headerCountLabel">Instruments</div></div>
+    <div class="stat"><div class="stat-num" id="vaultValue">$0</div><div class="stat-label">Est. value</div></div>
+    <button class="stat clickable" type="button" id="headerGigs" aria-pressed="false" onclick="toggleGigsFilter(this)" title="Show only instruments with a gig log"><div class="stat-num" id="gigsTotal">0</div><div class="stat-label">Gigs logged</div></button>
+  </div>
   <div class="toolbar">
-    <input class="search-box" type="search" id="searchInput" aria-label="Search instruments" placeholder="🔍  Search instruments..." oninput="renderInventory()">
-    <select class="filter-select" id="typeFilter" aria-label="Filter by type" onchange="renderInventory()">
-      <option value="">ALL TYPES</option>
-      <option>GUITAR</option><option>BASS</option><option>PIANO</option><option>KEYBOARD</option>
-      <option>VIOLIN</option><option>CELLO</option><option>VIOLA</option><option>UPRIGHT BASS</option>
-      <option>TRUMPET</option><option>SAXOPHONE</option><option>TROMBONE</option><option>FLUTE</option>
-      <option>DRUMS</option><option>PERCUSSION</option><option>BANJO</option><option>MANDOLIN</option>
-      <option>UKULELE</option><option>SYNTHESIZER</option><option>AMPLIFIER</option><option>OTHER</option>
-    </select>
-    <select class="filter-select" id="familyFilter" aria-label="Filter by family" onchange="renderInventory()">
-      <option value="">ALL FAMILIES</option>
-      <option>STRINGED</option><option>KEYBOARD</option><option>WOODWIND</option>
-      <option>BRASS</option><option>PERCUSSION</option><option>ELECTRONIC</option>
-    </select>
-    <select class="filter-select" id="storageFilter" onchange="renderInventory()" title="Filter by storage location">
-      <option value="">ALL STORAGE</option>
-      <option>Case</option>
-      <option>Gig Bag</option>
-      <option>Guitar Stand</option>
-      <option>Wall Mount</option>
-      <option>Storage Room</option>
-      <option>Studio</option>
-      <option>Locker</option>
-      <option>Vehicle</option>
-      <option>Other</option>
-    </select>
-    <select class="filter-select" id="sortSelect" aria-label="Sort instruments" onchange="renderInventory()">
-      <option value="default">SORT: ADDED</option>
-      <option value="name-az">NAME A→Z</option><option value="name-za">NAME Z→A</option>
-      <option value="make-az">BRAND A→Z</option>
-      <option value="value-hi">VALUE HIGH→LOW</option><option value="value-lo">VALUE LOW→HIGH</option>
-      <option value="year-new">YEAR NEWEST</option><option value="year-old">YEAR OLDEST</option>
-    </select>
-    <div class="view-toggle">
-      <button class="view-btn active" id="vbtn-grid" onclick="setView('grid')" title="Grid">⊞</button>
-      <button class="view-btn" id="vbtn-small" onclick="setView('small')" title="Small tiles">⊟</button>
-      <button class="view-btn" id="vbtn-list" onclick="setView('list')" title="List">☰</button>
+    <div class="search-wrap">
+      <span data-ico="search"></span>
+      <input class="search-box" type="search" id="searchInput" aria-label="Search instruments" placeholder="Search" oninput="renderInventory()">
     </div>
+    <button class="btn filter-btn" type="button" id="filterBtn" onclick="toggleFilters()" aria-expanded="false" aria-label="Filter and sort">
+      <span data-ico="filter"></span><span class="filter-count" id="filterCount">0</span>
+    </button>
+    <div class="view-toggle">
+      <button class="view-btn active" id="vbtn-grid" onclick="setView('grid')" title="Grid" aria-label="Grid view">⊞</button>
+      <button class="view-btn" id="vbtn-small" onclick="setView('small')" title="Small tiles" aria-label="Small tiles">⊟</button>
+      <button class="view-btn" id="vbtn-list" onclick="setView('list')" title="List" aria-label="List view">☰</button>
+    </div>
+  </div>
+  <div class="filter-panel" id="filterPanel">
+    <label class="fp-field"><span>Type</span><select class="filter-select" id="typeFilter" aria-label="Filter by type" onchange="renderInventory()">
+      <option value="">All types</option><option>GUITAR</option><option>BASS</option><option>PIANO</option><option>KEYBOARD</option><option>VIOLIN</option><option>CELLO</option><option>VIOLA</option><option>UPRIGHT BASS</option><option>TRUMPET</option><option>SAXOPHONE</option><option>TROMBONE</option><option>FLUTE</option><option>DRUMS</option><option>PERCUSSION</option><option>BANJO</option><option>MANDOLIN</option><option>UKULELE</option><option>SYNTHESIZER</option><option>AMPLIFIER</option><option>OTHER</option>
+    </select></label>
+    <label class="fp-field"><span>Family</span><select class="filter-select" id="familyFilter" aria-label="Filter by family" onchange="renderInventory()">
+      <option value="">All families</option>
+      <option>STRINGED</option><option>KEYBOARD</option><option>WOODWIND</option><option>BRASS</option><option>PERCUSSION</option><option>ELECTRONIC</option>
+    </select></label>
+    <label class="fp-field"><span>Storage</span><select class="filter-select" id="storageFilter" aria-label="Filter by storage location" onchange="renderInventory()">
+      <option value="">All storage</option>
+      <option>Case</option><option>Gig Bag</option><option>Guitar Stand</option><option>Wall Mount</option><option>Storage Room</option><option>Studio</option><option>Locker</option><option>Vehicle</option><option>Other</option>
+    </select></label>
+    <label class="fp-field"><span>Sort by</span><select class="filter-select" id="sortSelect" aria-label="Sort instruments" onchange="renderInventory()">
+      <option value="default">Recently added</option>
+      <option value="name-az">Model A to Z</option><option value="name-za">Model Z to A</option>
+      <option value="make-az">Brand A to Z</option>
+      <option value="value-hi">Value, high to low</option><option value="value-lo">Value, low to high</option>
+      <option value="year-new">Year, newest</option><option value="year-old">Year, oldest</option>
+    </select></label>
   </div>
   <div class="inventory-grid" id="inventoryGrid"></div>
 </div>
@@ -478,78 +601,148 @@ select.filter-select {
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!--  SCREEN: IMPORT / EXPORT                               -->
+<!--  SCREEN: SETTINGS                                       -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-settings">
+  <div class="page">
+    <h1 class="page-title">Settings</h1>
+
+    <div class="group-label">Appearance</div>
+    <div class="group">
+      <div class="row col">
+        <div style="display:flex;align-items:center;gap:12px"><span class="row-ico" data-ico="sun"></span><div class="row-main"><div class="row-title">Theme</div><div class="row-sub">Auto follows your device</div></div></div>
+        <div class="seg seg-full" role="radiogroup" aria-label="Theme" id="themeSeg">
+          <button type="button" role="radio" data-theme-opt="auto" onclick="setTheme('auto')">Auto</button>
+          <button type="button" role="radio" data-theme-opt="light" onclick="setTheme('light')">Light</button>
+          <button type="button" role="radio" data-theme-opt="dark" onclick="setTheme('dark')">Dark</button>
+        </div>
+      </div>
+      <button class="row row-btn" type="button" onclick="openQuickPicker()">
+        <span class="row-ico" id="settingsQuickIco"></span>
+        <div class="row-main"><div class="row-title">Quick button</div><div class="row-sub" id="settingsQuickLabel">Tuner</div></div>
+        <span class="chev">›</span>
+      </button>
+    </div>
+
+    <div class="group-label">AI features</div>
+    <div class="group">
+      <div class="row col">
+        <div><div class="row-title">Groq API key</div><div class="row-sub">Powers instrument profiles, camera scan, song search and the learning tools. Stored on this device only.</div></div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" type="password" id="apiKeyInput" placeholder="gsk_…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Groq API key" onchange="saveSettings(true)">
+          <button class="btn" type="button" id="toggleKeyBtn" onclick="toggleKeyVisibility()" style="flex-shrink:0">Show</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div class="row-note"><span class="status-dot" id="apiStatusDot"></span><span id="apiStatusText">Not set</span> · <a href="https://console.groq.com" target="_blank" rel="noopener">Get a free key</a></div>
+          <button class="btn btn-primary btn-sm" type="button" onclick="saveSettings()">Save key</button>
+        </div>
+      </div>
+      <div class="row col">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div class="row-title">AI model</div>
+          <button class="btn btn-sm" type="button" id="refreshModelsBtn" onclick="refreshGroqModels(true)" aria-label="Refresh model list from Groq">↻ Refresh</button>
+        </div>
+        <select class="form-input" id="textModelSelect" aria-label="AI text model" onchange="saveSettings(true)">
+          <option value="qwen/qwen3.6-27b">qwen/qwen3.6-27b (recommended, best quality)</option>
+          <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (strong general-purpose alt)</option>
+          <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (faster, higher limits)</option>
+        </select>
+        <div id="modelStatus" role="status" class="row-note"></div>
+        <div class="row-note">Free tier is about 500K tokens a day (resets midnight UTC). If your pick is rate limited, the app falls back to gpt-oss-120b or 20b automatically.</div>
+      </div>
+    </div>
+
+    <div class="group-label">Your data</div>
+    <div class="group">
+      <button class="row row-btn" type="button" onclick="switchScreen('import-export')">
+        <span class="row-ico" data-ico="archive"></span>
+        <div class="row-main"><div class="row-title">Backup &amp; restore</div><div class="row-sub" id="backupRowSub">Not backed up yet</div></div>
+        <span class="chev">›</span>
+      </button>
+      <button class="row row-btn" type="button" onclick="openModal('notesModal')">
+        <span class="row-ico" data-ico="note"></span>
+        <div class="row-main"><div class="row-title">Notes &amp; feedback</div><div class="row-sub">Ideas, issues and your own notes</div></div>
+        <span class="chev">›</span>
+      </button>
+      <button class="row row-btn" type="button" onclick="loadDemoData()">
+        <span class="row-ico" data-ico="music"></span>
+        <div class="row-main"><div class="row-title">Load sample instruments</div><div class="row-sub">Adds a few example instruments to try things out</div></div>
+        <span class="chev">›</span>
+      </button>
+      <button class="row row-btn danger" type="button" onclick="clearCollection()">
+        <span class="row-ico" data-ico="trash" style="background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)"></span>
+        <div class="row-main"><div class="row-title">Clear collection</div><div class="row-sub">Removes every instrument from this device</div></div>
+      </button>
+    </div>
+
+    <div class="group-label">About</div>
+    <div class="group">
+      <div class="row"><div class="row-main"><div class="row-title">Unplugged</div><div class="row-sub">Instrument collection, tuner, chords and practice tools</div></div><span class="row-sub" id="aboutVersion">v2.6</span></div>
+      <div class="row col"><div class="row-note"><strong style="color:var(--text-secondary)">Your data stays with you.</strong> Your collection, notes and settings are stored on this device. The app talks to the internet only for AI features (Groq, using your own key), instrument photos (Wikipedia), lyrics lookup, and the spreadsheet library. Backups never include your API key unless you choose to.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  SCREEN: BACKUP & RESTORE                               -->
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="screen" id="screen-import-export">
-  <div class="main">
+  <div class="page">
+    <button class="back-link" type="button" onclick="switchScreen('settings')">‹ Settings</button>
+    <h1 class="page-title">Backup &amp; restore</h1>
+    <p class="page-sub">Your collection lives on this device. A backup is one file you can keep in cloud storage, email to yourself, or use to move to a new phone.</p>
 
-    <!-- ── XLSX / CSV ── -->
-    <div class="ie-grid" style="margin-bottom:24px">
-      <div class="ie-card">
-        <h3>📥 IMPORT</h3>
-        <p>Import from Excel or CSV. Matched by serial number — updates existing, adds new, never duplicates.</p>
-        <div class="ie-drop-zone" id="dropZone" onclick="document.getElementById('importFile').click()"
-             ondragover="event.preventDefault();this.classList.add('drag-over')"
-             ondragleave="this.classList.remove('drag-over')"
-             ondrop="handleFileDrop(event)">
-          <div class="ie-drop-icon">📂</div>
-          <div>Drop .xlsx / .csv here<br><small>or click to browse</small></div>
-        </div>
-        <div id="importPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:14px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
-        <input type="file" id="importFile" accept=".xlsx,.csv" style="display:none" onchange="importFile(event)">
+    <div class="ie-grid" style="margin-top:18px">
+      <div class="card">
+        <h3>Back up</h3>
+        <p>Saves everything in a single .json file: instruments, photos, gig and service logs, notes, setlists and your own songs.</p>
+        <label class="check-row"><input type="checkbox" id="backupIncludeKey"><span>Include my Groq API key. Leave this off if you will store the file online or share it.</span></label>
+        <button class="btn btn-primary btn-block" type="button" onclick="exportFullBackup()">Download backup</button>
+        <div class="row-note" id="lastBackupNote" style="margin-top:10px"></div>
       </div>
-      <div class="ie-card">
-        <h3>📤 EXPORT</h3>
-        <p>Export your full instrument vault. Includes all specs, notes, gig history, and service records.</p>
-        <button class="btn btn-primary" onclick="exportXLSX()" style="margin-bottom:10px;width:100%">⬇ EXPORT TO EXCEL (.xlsx)</button>
-        <button class="btn" onclick="exportCSV()" style="margin-bottom:10px;width:100%">⬇ EXPORT TO CSV</button>
-        <button class="btn" onclick="downloadBlankTemplate()" style="margin-bottom:16px;width:100%">📋 DOWNLOAD BLANK TEMPLATE</button>
-        <button class="btn" onclick="exportInsurancePDF()" style="width:100%">📄 EXPORT INSURANCE REPORT</button>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:8px">
-          Template columns: make · model · type · family · serial_number · year · country · finish · body_material · neck_material · key · condition · value · purchase_price · purchase_date · storage_location · notes
-        </div>
-      </div>
-    </div>
-
-    <!-- ── FULL BACKUP ── -->
-    <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px">
-      🗄 FULL BACKUP
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px">JSON — everything in one file</span>
-    </div>
-    <div class="ie-grid">
-      <div class="ie-card">
-        <h3>📦 EXPORT BACKUP</h3>
-        <p>Downloads a <strong>.json</strong> file with your entire vault — all instruments, photos (base64), gig logs, service records, AI descriptions, and settings. Your API key is left out unless you tick the box below. Date-stamped filename.</p>
-        <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--text-secondary)"><input type="checkbox" id="backupIncludeKey"> Include my Groq API key (leave off if you will store or share this file)</label>
-        <button class="btn btn-primary" onclick="exportFullBackup()" style="margin-top:12px;width:100%">⬇ EXPORT FULL BACKUP (.json)</button>
-      </div>
-      <div class="ie-card">
-        <h3>♻ RESTORE BACKUP</h3>
-        <p>Import a <strong>.json</strong> backup. <strong>Merge</strong> upserts by serial number without touching existing data. <strong>Replace All</strong> wipes and restores everything.</p>
+      <div class="card">
+        <h3>Restore</h3>
+        <p>Choose a backup file. <strong>Merge</strong> adds new instruments and updates matching ones. <strong>Replace all</strong> swaps everything for the backup.</p>
         <div class="ie-drop-zone" id="backupDropZone" onclick="document.getElementById('backupFile').click()"
              ondragover="event.preventDefault();this.classList.add('drag-over')"
              ondragleave="this.classList.remove('drag-over')"
              ondrop="handleBackupDrop(event)">
           <div class="ie-drop-icon">📄</div>
-          <div>Drop .json backup here<br><small>or click to browse</small></div>
+          <div>Choose a backup file<br><small>.json, or drop it here</small></div>
         </div>
-        <div id="backupPreview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:14px;font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
+        <div id="backupPreview" class="preview-pill"></div>
         <input type="file" id="backupFile" accept=".json" style="display:none" onchange="loadBackupFile(event)">
         <div style="display:flex;gap:10px;margin-top:12px">
-          <button class="btn" onclick="restoreBackupMerge()" style="flex:1" id="restoreMergeBtn" disabled>MERGE</button>
-          <button class="btn btn-danger" onclick="restoreBackupReplace()" style="flex:1" id="restoreReplaceBtn" disabled>REPLACE ALL</button>
+          <button class="btn btn-primary" type="button" id="restoreMergeBtn" onclick="restoreBackupMerge()" style="flex:1" disabled>Merge</button>
+          <button class="btn btn-danger" type="button" id="restoreReplaceBtn" onclick="restoreBackupReplace()" style="flex:1" disabled>Replace all</button>
         </div>
       </div>
     </div>
 
-    <!-- ── NOTES & FEEDBACK ── -->
-    <div style="margin-top:24px">
-      <button class="btn" onclick="openModal('notesModal')" style="display:flex;align-items:center;gap:8px">
-        📝 NOTES &amp; FEEDBACK
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">Ideas · Issues · Notes</span>
-      </button>
+    <div class="group-label">Spreadsheets &amp; reports</div>
+    <div class="ie-grid">
+      <div class="card">
+        <h3>Import</h3>
+        <p>Bring instruments in from Excel or CSV. Rows are matched by serial number, so existing instruments are updated instead of duplicated.</p>
+        <div class="ie-drop-zone" id="dropZone" onclick="document.getElementById('importFile').click()"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleFileDrop(event)">
+          <div class="ie-drop-icon">📂</div>
+          <div>Choose a spreadsheet<br><small>.xlsx or .csv, or drop it here</small></div>
+        </div>
+        <div id="importPreview" class="preview-pill"></div>
+        <input type="file" id="importFile" accept=".xlsx,.csv" style="display:none" onchange="importFile(event)">
+      </div>
+      <div class="card">
+        <h3>Export</h3>
+        <p>Download your collection as a spreadsheet, or create a printable insurance report.</p>
+        <button class="btn btn-block" type="button" onclick="exportXLSX()">Excel (.xlsx)</button>
+        <button class="btn btn-block" type="button" onclick="exportCSV()">CSV</button>
+        <button class="btn btn-block" type="button" onclick="exportInsurancePDF()">Insurance report</button>
+        <button class="btn btn-block" type="button" onclick="downloadBlankTemplate()">Blank import template</button>
+      </div>
     </div>
-
   </div>
 </div>
 
@@ -557,7 +750,7 @@ select.filter-select {
 <div class="modal-overlay" id="notesModal" role="dialog" aria-modal="true" aria-label="Notes">
   <div class="modal" style="max-width:600px">
     <div class="modal-header">
-      <span class="modal-title">📝 NOTES &amp; FEEDBACK</span>
+      <span class="modal-title">Notes &amp; feedback</span>
       <button class="modal-close" aria-label="Close" onclick="closeModal('notesModal')">✕</button>
     </div>
     <div class="modal-body">
@@ -587,73 +780,74 @@ select.filter-select {
 <div class="screen laz-screen" id="screen-laz">
   <!-- HUB -->
   <div id="lazHub">
-    <div style="padding:24px 24px 0;max-width:1000px;margin:0 auto">
-      <div style="font-family:var(--heading);font-size:14px;letter-spacing:0.4px;color:var(--text-dim);margin-bottom:4px">INSTRUMENT TOOLKIT</div>
-      <div style="font-family:var(--heading);font-size:36px;letter-spacing:0.5px;color:var(--accent-bright)">TOOLS</div>
+    <div class="page" style="max-width:1000px;padding:6px 18px 0">
+      <h1 class="page-title">Tools</h1>
+      <p class="page-sub">Tune up, practice, and get ready for the gig.</p>
     </div>
     <div class="laz-hub">
-      <div class="laz-card" onclick="showLazPanel('recorder')">
+      <div class="laz-card" data-tool="recorder" role="button" tabindex="0" onclick="showLazPanel(\'recorder\')">
         <div class="laz-card-badge">AUDIO</div>
         <div class="laz-card-icon">🎙</div>
-        <div class="laz-card-title">RECORD</div>
+        <div class="laz-card-title">Record</div>
         <div class="laz-card-desc">Capture audio from any connected microphone or USB interface. Play back and download your recordings.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('tuner')">
+      <div class="laz-card" data-tool="tuner" role="button" tabindex="0" onclick="showLazPanel(\'tuner\')">
         <div class="laz-card-badge">CHROMATIC</div>
         <div class="laz-card-icon">🎵</div>
-        <div class="laz-card-title">TUNER</div>
+        <div class="laz-card-title">Tuner</div>
         <div class="laz-card-desc">Pitch-detection tuner using your mic. Works for any instrument — guitar, bass, winds, strings.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('learn')">
+      <div class="laz-card" data-tool="learn" role="button" tabindex="0" onclick="showLazPanel(\'learn\')">
         <div class="laz-card-badge">INTERACTIVE</div>
         <div class="laz-card-icon">🎸</div>
-        <div class="laz-card-title">LEARN TO PLAY</div>
+        <div class="laz-card-title">Learn to play</div>
         <div class="laz-card-desc">Step-by-step teacher with tab, plain callouts and mic feedback. Easy to hard.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('songsearch')">
+      <div class="laz-card" data-tool="songsearch" role="button" tabindex="0" onclick="showLazPanel(\'songsearch\')">
         <div class="laz-card-badge">AI POWERED</div>
         <div class="laz-card-icon">🎵</div>
-        <div class="laz-card-title">SONG SEARCH</div>
+        <div class="laz-card-title">Song search</div>
         <div class="laz-card-desc">Search any song — get tab, chord diagrams, lyrics with chord markers, strum pattern, key &amp; capo position.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('metronome')">
+      <div class="laz-card" data-tool="metronome" role="button" tabindex="0" onclick="showLazPanel(\'metronome\')">
         <div class="laz-card-badge">TIMING</div>
         <div class="laz-card-icon">🥁</div>
-        <div class="laz-card-title">METRONOME</div>
+        <div class="laz-card-title">Metronome</div>
         <div class="laz-card-desc">Visual pendulum metronome with tap tempo, BPM slider, and time signature control.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('chorddict')">
+      <div class="laz-card" data-tool="chorddict" role="button" tabindex="0" onclick="showLazPanel(\'chorddict\')">
         <div class="laz-card-badge">REFERENCE</div>
         <div class="laz-card-icon">🎼</div>
-        <div class="laz-card-title">CHORD DICTIONARY</div>
+        <div class="laz-card-title">Chord dictionary</div>
         <div class="laz-card-desc">Look up any chord — see multiple voicings with fretboard diagrams and finger positions.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('setlist')">
+      <div class="laz-card" data-tool="setlist" role="button" tabindex="0" onclick="showLazPanel(\'setlist\')">
         <div class="laz-card-badge">GIG PREP</div>
         <div class="laz-card-icon">📋</div>
-        <div class="laz-card-title">SETLIST BUILDER</div>
+        <div class="laz-card-title">Setlist builder</div>
         <div class="laz-card-desc">Build and reorder setlists for gigs. Add BPM, key, and notes per song. Save multiple lists.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('originals')">
+      <div class="laz-card" data-tool="originals" role="button" tabindex="0" onclick="showLazPanel(\'originals\')">
         <div class="laz-card-badge">SONGWRITING</div>
         <div class="laz-card-icon">✍️</div>
-        <div class="laz-card-title">ORIGINALS</div>
+        <div class="laz-card-title">Originals</div>
         <div class="laz-card-desc">Keep your own songs — lyrics, chords, riff ideas, whatever you're working on. Save and edit anytime.</div>
       </div>
-      <div class="laz-card" onclick="showLazPanel('practicetimer')">
+      <div class="laz-card" data-tool="practicetimer" role="button" tabindex="0" onclick="showLazPanel(\'practicetimer\')">
         <div class="laz-card-badge">HABITS</div>
         <div class="laz-card-icon">⏱</div>
-        <div class="laz-card-title">PRACTICE TIMER</div>
+        <div class="laz-card-title">Practice timer</div>
         <div class="laz-card-desc">Track your practice sessions, set daily goals, and build a streak. Session log with notes.</div>
       </div>
     </div>
+    <p class="row-note" style="max-width:1000px;margin:4px auto 0;padding:0 18px 12px">Tip: press and hold the quick button in the bottom bar to choose which tool it opens.</p>
   </div>
 
   <!-- ── RECORDER PANEL ── -->
   <div id="lazPanelRecorder" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub()">← BACK</button>
-      <div class="laz-panel-title">🎙 RECORD</div>
+      <button class="laz-back" onclick="showLazHub()">‹ Tools</button>
+      <div class="laz-panel-title">🎙 Record</div>
     </div>
     <div class="laz-content">
       <div class="recorder-wrap">
@@ -679,8 +873,8 @@ select.filter-select {
   <!-- ── TUNER PANEL ── -->
   <div id="lazPanelTuner" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub();stopTuner()">← BACK</button>
-      <div class="laz-panel-title">🎵 CHROMATIC TUNER</div>
+      <button class="laz-back" onclick="showLazHub();stopTuner()">‹ Tools</button>
+      <div class="laz-panel-title">🎵 Chromatic tuner</div>
     </div>
     <div class="laz-content">
       <div class="tuner-wrap">
@@ -727,8 +921,8 @@ select.filter-select {
   <!-- ── LEARN PANEL ── -->
   <div id="lazPanelLearn" style="display:none">
     <div class="laz-header" id="learnHeader">
-      <button class="laz-back" onclick="showLazHub();stopHero()">← BACK</button>
-      <div class="laz-panel-title">🎸 LEARN TO PLAY</div>
+      <button class="laz-back" onclick="showLazHub();stopHero()">‹ Tools</button>
+      <div class="laz-panel-title">🎸 Learn to play</div>
     </div>
     <div class="laz-content" id="learnSetupArea">
       <div class="learn-setup">
@@ -791,7 +985,7 @@ select.filter-select {
       <!-- Teacher header bar -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:12px">
-          <button class="laz-back" onclick="stopTeacher()">← QUIT</button>
+          <button class="laz-back" onclick="stopTeacher()">‹ Quit</button>
           <div style="font-family:var(--heading);font-size:20px;letter-spacing:0.3px;color:var(--accent-bright)" id="teacherSongTitle"></div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -962,8 +1156,8 @@ select.filter-select {
   <!-- ══ SONG SEARCH PANEL ══ -->
   <div id="lazPanelSongsearch" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub()">← BACK</button>
-      <div class="laz-panel-title">🎵 SONG SEARCH</div>
+      <button class="laz-back" onclick="showLazHub()">‹ Tools</button>
+      <div class="laz-panel-title">🎵 Song search</div>
     </div>
     <div class="laz-content">
       <div class="song-search-bar">
@@ -1014,8 +1208,8 @@ select.filter-select {
   <!-- ══ METRONOME PANEL ══ -->
   <div id="lazPanelMetronome" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub();stopMetronome()">← BACK</button>
-      <div class="laz-panel-title">🥁 METRONOME</div>
+      <button class="laz-back" onclick="showLazHub();stopMetronome()">‹ Tools</button>
+      <div class="laz-panel-title">🥁 Metronome</div>
     </div>
     <div class="laz-content" style="max-width:500px">
       <div class="metro-bpm-display" id="metroBpmDisplay">120</div>
@@ -1051,8 +1245,8 @@ select.filter-select {
   <!-- ══ CHORD DICTIONARY PANEL ══ -->
   <div id="lazPanelChorddict" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub()">← BACK</button>
-      <div class="laz-panel-title">🎼 CHORD DICTIONARY</div>
+      <button class="laz-back" onclick="showLazHub()">‹ Tools</button>
+      <div class="laz-panel-title">🎼 Chord dictionary</div>
     </div>
     <div class="laz-content">
       <div class="chord-search-wrap">
@@ -1076,8 +1270,8 @@ select.filter-select {
   <!-- ══ SETLIST BUILDER PANEL ══ -->
   <div id="lazPanelSetlist" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub()">← BACK</button>
-      <div class="laz-panel-title">📋 SETLIST BUILDER</div>
+      <button class="laz-back" onclick="showLazHub()">‹ Tools</button>
+      <div class="laz-panel-title">📋 Setlist builder</div>
       <div style="margin-left:auto;display:flex;gap:8px">
         <select class="form-select" id="setlistSelector" onchange="loadSetlist(this.value)" style="font-family:var(--mono);font-size:12px"></select>
         <button class="btn btn-sm" onclick="newSetlist()">＋ NEW</button>
@@ -1113,11 +1307,11 @@ select.filter-select {
   <!-- ══ PRACTICE TIMER PANEL ══ -->
   <div id="lazPanelPracticetimer" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub();stopPracticeTimer()">← BACK</button>
-      <div class="laz-panel-title">⏱ PRACTICE TIMER</div>
+      <button class="laz-back" onclick="showLazHub();stopPracticeTimer()">‹ Tools</button>
+      <div class="laz-panel-title">⏱ Practice timer</div>
     </div>
     <div class="laz-content">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="practice-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div>
           <div class="practice-timer-display" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;margin-bottom:16px">
             <div class="practice-clock" id="practiceClock">00:00</div>
@@ -1161,8 +1355,8 @@ select.filter-select {
   <!-- ══ ORIGINALS PANEL ══ -->
   <div id="lazPanelOriginals" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="showLazHub()">← BACK</button>
-      <div class="laz-panel-title">✍️ ORIGINALS</div>
+      <button class="laz-back" onclick="showLazHub()">‹ Tools</button>
+      <div class="laz-panel-title">✍️ Originals</div>
       <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="newOriginal()">＋ NEW SONG</button>
     </div>
     <div class="laz-content">
@@ -1178,28 +1372,28 @@ select.filter-select {
   <!-- ══ ORIGINAL EDITOR (full view) ══ -->
   <div id="lazPanelOriginalEdit" style="display:none">
     <div class="laz-header">
-      <button class="laz-back" onclick="closeOriginalEditor()">← BACK</button>
-      <div class="laz-panel-title">✍️ EDIT SONG</div>
+      <button class="laz-back" onclick="closeOriginalEditor()">‹ Originals</button>
+      <div class="laz-panel-title">✍️ Edit song</div>
       <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="deleteOriginal()">🗑 DELETE</button>
     </div>
     <div class="laz-content">
       <div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
         <div class="form-group">
-          <label class="form-label">SONG TITLE</label>
+          <label class="form-label">Song title</label>
           <input class="form-input" id="originalTitleInput" placeholder="Untitled" style="font-family:var(--heading);font-size:20px" oninput="autosaveOriginal()">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div class="form-group">
-            <label class="form-label">KEY</label>
+            <label class="form-label">Key</label>
             <input class="form-input" id="originalKeyInput" placeholder="e.g. E minor" oninput="autosaveOriginal()">
           </div>
           <div class="form-group">
-            <label class="form-label">TUNING / CAPO</label>
+            <label class="form-label">Tuning / capo</label>
             <input class="form-input" id="originalTuningInput" placeholder="e.g. Standard, Capo 2" oninput="autosaveOriginal()">
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">LYRICS / CHORDS / NOTES</label>
+          <label class="form-label">Lyrics / chords / notes</label>
           <textarea class="form-textarea" id="originalBodyInput" placeholder="[Verse 1]&#10;Write your lyrics, chord shapes over the words, riff ideas — whatever helps you remember it." style="min-height:340px;font-family:var(--mono);font-size:13px;line-height:1.7" oninput="autosaveOriginal()"></textarea>
         </div>
         <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:right" id="originalSavedStatus">Saved</div>
@@ -1217,21 +1411,21 @@ select.filter-select {
 <div class="modal-overlay" id="editModal" role="dialog" aria-modal="true" aria-label="Edit instrument">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title" id="modalTitle">ADD INSTRUMENT</span>
+      <span class="modal-title" id="modalTitle">Add instrument</span>
       <button class="modal-close" aria-label="Close" onclick="closeModal('editModal')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label">BRAND / MAKER *</label>
+          <label class="form-label">Brand / maker *</label>
           <input class="form-input" id="f-make" placeholder="e.g. Gibson, Fender, Steinway">
         </div>
         <div class="form-group">
-          <label class="form-label">MODEL / NAME *</label>
+          <label class="form-label">Model / name *</label>
           <input class="form-input" id="f-model" placeholder="e.g. Les Paul Standard, Stratocaster">
         </div>
         <div class="form-group">
-          <label class="form-label">TYPE</label>
+          <label class="form-label">Type</label>
           <select class="form-select" id="f-type">
             <option value="">SELECT TYPE</option>
             <option>GUITAR</option><option>BASS</option><option>PIANO</option><option>KEYBOARD</option>
@@ -1242,7 +1436,7 @@ select.filter-select {
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">FAMILY</label>
+          <label class="form-label">Family</label>
           <select class="form-select" id="f-family">
             <option value="">SELECT FAMILY</option>
             <option>STRINGED</option><option>KEYBOARD</option><option>WOODWIND</option>
@@ -1250,27 +1444,27 @@ select.filter-select {
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">SERIAL NUMBER</label>
+          <label class="form-label">Serial number</label>
           <input class="form-input" id="f-serial" placeholder="Serial / instrument ID">
         </div>
         <div class="form-group">
-          <label class="form-label">YEAR</label>
+          <label class="form-label">Year</label>
           <input class="form-input" id="f-year" placeholder="e.g. 1962">
         </div>
         <div class="form-group">
-          <label class="form-label">COUNTRY OF ORIGIN</label>
+          <label class="form-label">Country of origin</label>
           <input class="form-input" id="f-country" placeholder="e.g. USA, Japan, Germany">
         </div>
         <div class="form-group">
-          <label class="form-label">FINISH / COLOR</label>
+          <label class="form-label">Finish / color</label>
           <input class="form-input" id="f-finish" placeholder="e.g. Sunburst, Natural, Cherry Red">
         </div>
         <div class="form-group">
-          <label class="form-label">BODY / MATERIAL</label>
+          <label class="form-label">Body / material</label>
           <input class="form-input" id="f-body" placeholder="e.g. Mahogany, Spruce top">
         </div>
         <div class="form-group">
-          <label class="form-label">NECK / MATERIAL</label>
+          <label class="form-label">Neck / material</label>
           <input class="form-input" id="f-neck" placeholder="e.g. Maple, Rosewood fretboard">
         </div>
         <div class="form-group">
@@ -1278,26 +1472,26 @@ select.filter-select {
           <input class="form-input" id="f-key" placeholder="e.g. Bb, Eb, Concert C">
         </div>
         <div class="form-group">
-          <label class="form-label">CONDITION</label>
+          <label class="form-label">Condition</label>
           <select class="form-select" id="f-condition">
             <option>MINT</option><option>EXCELLENT</option><option>VERY GOOD</option>
             <option>GOOD</option><option>FAIR</option><option>NEEDS REPAIR</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">ESTIMATED VALUE ($)</label>
+          <label class="form-label">Estimated value ($)</label>
           <input class="form-input" id="f-value" type="number" placeholder="Current market value">
         </div>
         <div class="form-group">
-          <label class="form-label">PURCHASE PRICE ($)</label>
+          <label class="form-label">Purchase price ($)</label>
           <input class="form-input" id="f-purchase" type="number" placeholder="What you paid">
         </div>
         <div class="form-group">
-          <label class="form-label">PURCHASE DATE</label>
+          <label class="form-label">Purchase date</label>
           <input class="form-input" id="f-purchase-date" type="date">
         </div>
         <div class="form-group">
-          <label class="form-label">STORAGE LOCATION</label>
+          <label class="form-label">Storage location</label>
           <select class="form-select" id="f-storage">
             <option value="">— Select —</option>
             <option>Case</option>
@@ -1312,11 +1506,11 @@ select.filter-select {
           </select>
         </div>
         <div class="form-group full">
-          <label class="form-label">NOTES</label>
+          <label class="form-label">Notes</label>
           <textarea class="form-textarea" id="f-notes" placeholder="Provenance, mods, unique details..."></textarea>
         </div>
         <div class="form-group full">
-          <label class="form-label">PHOTO URL</label>
+          <label class="form-label">Photo url</label>
           <input class="form-input" id="f-image" placeholder="https://... or leave blank to upload">
           <div id="f-image-preview" style="display:none;margin-top:8px">
             <img id="f-image-preview-img" style="max-height:120px;border-radius:14px;border:1px solid var(--border)" alt="preview">
@@ -1346,7 +1540,7 @@ select.filter-select {
 <div class="modal-overlay" id="cameraModal" role="dialog" aria-modal="true" aria-label="Camera scan">
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
-      <span class="modal-title">📷 SCAN INSTRUMENT</span>
+      <span class="modal-title">Scan instrument</span>
       <button class="modal-close" aria-label="Close" onclick="stopCamera()">✕</button>
     </div>
     <div class="modal-body" style="padding:16px">
@@ -1362,7 +1556,7 @@ select.filter-select {
       <canvas id="captureCanvas"></canvas>
       <div class="camera-status" id="cameraStatus">Initializing camera...</div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-primary btn-sm" onclick="captureAndAnalyze()">📸 CAPTURE + ANALYZE</button>
+        <button class="btn btn-primary btn-sm" onclick="captureAndAnalyze()">Capture &amp; analyze</button>
         <!-- Frame orientation toggle -->
         <div style="display:flex;gap:2px;background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:2px" title="Toggle scan frame orientation">
           <button class="view-btn active" id="frameBtnPortrait" onclick="setScanOrientation('portrait')" title="Portrait (tall — good for headstocks, labels)">▯</button>
@@ -1383,7 +1577,7 @@ select.filter-select {
           </span>
         </div>
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" id="addToInventoryBtn" onclick="addScannedToInventory()">＋ ADD TO VAULT</button>
+          <button class="btn btn-primary btn-sm" id="addToInventoryBtn" onclick="addScannedToInventory()">＋ Add to collection</button>
           <button class="btn btn-sm" onclick="document.getElementById('ocrSection').style.display='none';scannedData={}">CLEAR</button>
         </div>
       </div>
@@ -1391,61 +1585,35 @@ select.filter-select {
   </div>
 </div>
 
-<!-- ── SETTINGS MODAL ── -->
-<div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-label="Settings">
-  <div class="modal" style="max-width:480px">
+<!-- ── QUICK BUTTON PICKER ── -->
+<div class="modal-overlay" id="quickModal" role="dialog" aria-modal="true" aria-label="Choose quick button" onclick="if(event.target===this)closeModal('quickModal')">
+  <div class="modal" style="max-width:440px">
     <div class="modal-header">
-      <span class="modal-title">⚙ SETTINGS</span>
-      <button class="modal-close" aria-label="Close" onclick="closeModal('settingsModal')">✕</button>
+      <span class="modal-title">Quick button</span>
+      <button class="modal-close" aria-label="Close" onclick="closeModal('quickModal')">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="form-group" style="margin-bottom:20px">
-        <label class="form-label">GROQ API KEY (groq.com)</label>
-        <div style="display:flex;gap:8px">
-          <input class="form-input" type="password" id="apiKeyInput" placeholder="gsk_..." autocomplete="off">
-          <button class="btn" onclick="toggleKeyVisibility()" id="toggleKeyBtn" style="flex-shrink:0">SHOW</button>
-        </div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:6px;line-height:1.7">
-          Required for AI descriptions, image analysis, and camera scanning.<br>
-          Get your free key at <a href="https://console.groq.com" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;text-underline-offset:3px">console.groq.com</a> → API Keys.<br>
-          Stored locally in your browser only.
-        </div>
-      </div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
-          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.3px;color:var(--accent)">AI TEXT MODEL</div>
-          <button class="btn btn-sm" type="button" id="refreshModelsBtn" onclick="refreshGroqModels(true)" aria-label="Refresh model list from Groq">↻ REFRESH</button>
-        </div>
-        <select class="form-input" id="textModelSelect" style="margin-bottom:6px;font-family:var(--mono);font-size:12px">
-          <option value="qwen/qwen3.6-27b">qwen/qwen3.6-27b (recommended, best quality)</option>
-          <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (strong general-purpose alt)</option>
-          <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (faster, higher limits)</option>
-        </select>
-        <div id="modelStatus" role="status" style="font-family:var(--mono);font-size:10px;color:var(--text-secondary);line-height:1.6;margin-bottom:6px"></div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px;line-height:1.7">
-          Free tier: ~500K tokens/day · resets midnight UTC · 6K tokens/min<br>
-          On rate limit, your pick auto-falls back to gpt-oss-120b/20b automatically.
-        </div>
-      </div>
-      <div style="margin-top:16px;display:flex;gap:10px">
-        <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear all inventory data?')){inventory=[];save();renderInventory();closeModal('settingsModal');showToast('Vault cleared','info')}">CLEAR ALL DATA</button>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('settingsModal')">CANCEL</button>
-      <button class="btn btn-primary" onclick="saveSettings()">SAVE SETTINGS</button>
+    <div class="modal-body" style="padding:10px 10px 14px">
+      <p class="row-note" style="padding:4px 12px 10px">Choose the tool you want one tap away in the bottom bar. Press and hold the button any time to change it.</p>
+      <div id="quickList"></div>
     </div>
   </div>
 </div>
 
+<!-- ── CONFIRM ── -->
+<div class="modal-overlay" id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText" style="z-index:300">
+  <div class="modal" style="max-width:380px">
+    <div class="confirm-body"><h3 id="confirmTitle"></h3><p id="confirmText"></p></div>
+    <div class="modal-footer">
+      <button class="btn" type="button" id="confirmCancel">Cancel</button>
+      <button class="btn btn-primary" type="button" id="confirmOk">OK</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <!--  TOOLS SCREEN STYLES                                   -->
 <!-- ══════════════════════════════════════════════════════ -->
 <style>
-/* ── LAZ NAV TAB ── */
-#lazTab { color: var(--accent-bright) !important; }
-
 /* ── LAZ SCREEN ── */
 .laz-screen { padding: 0; }
 .laz-hub {
@@ -1597,7 +1765,7 @@ select.filter-select {
 .tuner-center-mark {
   position: absolute; bottom: 0; left: 50%;
   transform: translateX(-50%);
-  width: 2px; height: 90px; background: rgba(255,255,255,0.1);
+  width: 2px; height: 90px; background: var(--ink-10);
 }
 .tuner-freq { font-family: var(--mono); font-size: 13px; color: var(--text-dim); margin-top: 8px; }
 .tuner-strings {
@@ -1610,7 +1778,7 @@ select.filter-select {
   cursor: pointer; transition: all .2s; min-width: 50px;
 }
 .tuner-string-btn:hover { border-color: var(--accent); color: var(--accent); }
-.tuner-string-btn.active { background: var(--accent); color: #0A0A0C; border-color: var(--accent); }
+.tuner-string-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 /* ── LEARN ── */
 .learn-setup {
@@ -1817,7 +1985,7 @@ select.filter-select {
   color:var(--accent); cursor:pointer; border-radius:14px; transition:all .1s;
   user-select:none;
 }
-.metro-tap-btn:active { background:var(--accent); color:#0A0A0C; transform:scale(0.97); }
+.metro-tap-btn:active { background:var(--accent); color:var(--on-accent); transform:scale(0.97); }
 .metro-beats { display:flex; gap:8px; justify-content:center; margin:16px 0; }
 .metro-beat-dot {
   width:16px; height:16px; border-radius:50%;
@@ -1907,6 +2075,28 @@ select.filter-select {
 @keyframes countPop { 0%{transform:scale(1.5);opacity:0} 100%{transform:scale(1);opacity:1} }
 </style>
 
+<style>
+/* ── TOOLS: softer hub + panel chrome (overrides the block above) ── */
+.laz-hub { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 6px 18px 8px; max-width: 1000px; }
+.laz-card {
+  display: grid; grid-template-columns: 54px 1fr; column-gap: 14px; row-gap: 1px; align-items: center;
+  text-align: left; padding: 14px 16px; border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  transition: transform .2s var(--ease), border-color .2s, box-shadow .2s;
+}
+@media (hover:hover) { .laz-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--accent-dim); } }
+.laz-card:active { transform: scale(.985); }
+.laz-card-icon { grid-column: 1; grid-row: 1 / 4; width: 54px; height: 54px; margin: 0; font-size: 26px; border-radius: 16px; background: var(--accent-glow); display: flex; align-items: center; justify-content: center; filter: none; position: relative; }
+.laz-card-badge { position: static; grid-column: 2; grid-row: 1; justify-self: start; font: 700 10px var(--body); letter-spacing: 0.08em; padding: 0; background: none; border: none; color: var(--accent); }
+.laz-card-title { grid-column: 2; grid-row: 2; font: 700 16px var(--heading); letter-spacing: -0.005em; color: var(--text-primary); margin: 0; position: relative; }
+.laz-card-desc { grid-column: 2; grid-row: 3; font-size: 13px; line-height: 1.45; margin-top: 2px; position: relative; }
+.laz-card.is-quick .laz-card-badge::after { content: ' · QUICK BUTTON'; }
+.laz-header { padding: 12px 18px; background: transparent; border-bottom: 1px solid var(--border); }
+.laz-back { font: 600 14px var(--body); letter-spacing: 0; padding: 7px 14px; border-radius: 999px; color: var(--accent); border-color: var(--border-bright); }
+.laz-panel-title { font: 750 22px var(--heading); letter-spacing: -0.02em; color: var(--text-primary); }
+.laz-content { padding: 18px; }
+.recorder-wrap { border-radius: var(--radius); }
+</style>
+
 <!-- MIC DIAGNOSTIC HELP MODAL -->
 <div class="modal-overlay" id="micHelpModal" role="dialog" aria-modal="true" aria-label="Microphone help">
   <div class="modal" style="max-width:460px">
@@ -1928,7 +2118,7 @@ select.filter-select {
 //  DATA STORE
 // ══════════════════════════════════════════
 // Keep in sync with VERSION in sw.js (cache name = 'unplugged-v' + VERSION)
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 let inventory = JSON.parse(localStorage.getItem('unplugged_inventory') || '[]');
 let editingId = null;
 let scannedData = {};
@@ -2032,7 +2222,7 @@ function sanitiseJsonResponse(raw) {
 
 async function grokText(prompt) {
   const key = getApiKey();
-  if (!key) throw new Error('No API key set. Click ⚙ Settings to add your Groq key.');
+  if (!key) throw new Error('No API key set. Open Settings and add your Groq key.');
   const preferred = getTextModel();
   const fallback = preferred === 'openai/gpt-oss-120b' ? 'openai/gpt-oss-20b' : 'openai/gpt-oss-120b';
   const models = preferred === fallback ? [preferred] : [preferred, fallback];
@@ -2097,15 +2287,14 @@ async function grokVision(prompt, base64Image, mimeType='image/jpeg') {
 // ══════════════════════════════════════════
 //  SETTINGS
 // ══════════════════════════════════════════
-function saveSettings() {
+function saveSettings(quiet) {
   const key = document.getElementById('apiKeyInput').value.trim();
   const prevKey = localStorage.getItem('unplugged_api_key') || '';
   if (key) localStorage.setItem('unplugged_api_key', key);
   else localStorage.removeItem('unplugged_api_key');
   const model = document.getElementById('textModelSelect').value;
   if (model) localStorage.setItem('unplugged_text_model', model); // never overwrite a saved pick with blank
-  closeModal('settingsModal');
-  showToast('Settings saved', 'success');
+  if (!quiet) showToast('Settings saved', 'success');
   updateApiStatus();
   // Fetch the provider's current model list when a new key is saved (or none cached yet)
   if (key && (key !== prevKey || !getCachedModelList().length)) refreshGroqModels(false);
@@ -2194,18 +2383,49 @@ async function refreshGroqModels(manual) {
 function toggleKeyVisibility() {
   const inp = document.getElementById('apiKeyInput');
   const btn = document.getElementById('toggleKeyBtn');
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'HIDE'; }
-  else { inp.type = 'password'; btn.textContent = 'SHOW'; }
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+  else { inp.type = 'password'; btn.textContent = 'Show'; }
 }
 
 // ══════════════════════════════════════════
 //  MODAL HELPERS
 // ══════════════════════════════════════════
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-  if (id === 'settingsModal') loadSettings();
+function syncBodyLock() { document.body.classList.toggle('modal-open', !!document.querySelector('.modal-overlay.open')); }
+function openModal(id) { document.getElementById(id).classList.add('open'); syncBodyLock(); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); syncBodyLock(); }
+
+// Close the top-most open sheet/dialog (Escape key, Android back). Returns true if one was closed.
+function closeTopModal() {
+  const open = [...document.querySelectorAll('.modal-overlay.open')];
+  if (!open.length) return false;
+  const conf = open.find(m => m.id === 'confirmModal');
+  if (conf) { if (_confirmResolve) _confirmResolve(false); else closeModal('confirmModal'); return true; }
+  const top = open[open.length - 1];
+  if (top.id === 'cameraModal' && typeof stopCamera === 'function') stopCamera(); else closeModal(top.id);
+  return true;
 }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTopModal(); });
+
+// Themed confirm dialog (replaces the browser's native confirm()). Usage: if (!(await askConfirm({...}))) return;
+let _confirmResolve = null;
+function askConfirm(opts) {
+  opts = typeof opts === 'string' ? { message: opts } : (opts || {});
+  return new Promise(resolve => {
+    const m = document.getElementById('confirmModal');
+    const ok = document.getElementById('confirmOk'), cancel = document.getElementById('confirmCancel');
+    document.getElementById('confirmTitle').textContent = opts.title || 'Are you sure?';
+    document.getElementById('confirmText').textContent = opts.message || '';
+    ok.textContent = opts.okLabel || 'OK';
+    ok.style.cssText = opts.danger ? 'background:var(--red);border-color:var(--red);color:#fff' : '';
+    const done = v => { closeModal('confirmModal'); ok.onclick = cancel.onclick = m.onclick = null; _confirmResolve = null; resolve(v); };
+    _confirmResolve = done;
+    ok.onclick = () => done(true);
+    cancel.onclick = () => done(false);
+    m.onclick = e => { if (e.target === m) done(false); };
+    openModal('confirmModal');
+    setTimeout(() => cancel.focus(), 40);
+  });
+}
 
 // ══════════════════════════════════════════
 //  MIC ACCESS — pre-flight check + diagnostics
@@ -2274,11 +2494,26 @@ function showMicHelp(reason) {
 let _navStack = [];
 let _handlingPop = false;
 
-function switchScreen(name, tabEl, _fromPop) {
+const NAV_OWNER = { 'detail-screen': 'inventory', 'import-export': 'settings' };
+let _invScroll = 0;
+function switchScreen(name, _legacyTabEl, _fromPop) {
+  const prev = document.body.dataset.page;
+  if (prev === 'inventory' && name !== 'inventory') _invScroll = window.scrollY;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
-  if (tabEl) tabEl.classList.add('active');
+  const owner = NAV_OWNER[name] || name;
+  document.querySelectorAll('.tabbar .tab[data-screen]').forEach(t => {
+    const on = t.dataset.screen === owner;
+    t.classList.toggle('active', on);
+    if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+  });
+  document.body.dataset.page = name;
+  if (name === 'settings') onSettingsOpen();
+  if (name === 'import-export') updateBackupNotes();
+  if (prev !== name) {
+    if (name === 'inventory') requestAnimationFrame(() => window.scrollTo(0, _invScroll));
+    else window.scrollTo(0, 0);
+  }
 
   if (!_fromPop) {
     // Push state so back button can return here
@@ -2306,6 +2541,9 @@ window.addEventListener('popstate', e => {
 });
 
 function appHandleBack() {
+  // ── 0. A sheet or dialog is open → close it (history is re-balanced by the caller) ──
+  if (closeTopModal()) return false;
+
   // ── 1. Teacher mode active → go back to learn setup ──
   const teacherStage = document.getElementById('teacherStage');
   if (teacherStage && teacherStage.style.display !== 'none') {
@@ -2340,7 +2578,6 @@ function appHandleBack() {
     }
     // On hub — go back to vault
     switchScreen('inventory', document.querySelector('[data-screen=inventory]'), true);
-    document.getElementById('detailTab').style.display = 'none';
     return true;
   }
 
@@ -2348,14 +2585,18 @@ function appHandleBack() {
   const detailScreen = document.getElementById('screen-detail-screen');
   if (detailScreen && detailScreen.classList.contains('active')) {
     switchScreen('inventory', document.querySelector('[data-screen=inventory]'), true);
-    document.getElementById('detailTab').style.display = 'none';
     return true;
   }
 
-  // ── 5. On import/export → go to vault ──
+  // ── 5. On backup & restore → back to settings; settings → collection ──
   const ieScreen = document.getElementById('screen-import-export');
   if (ieScreen && ieScreen.classList.contains('active')) {
-    switchScreen('inventory', document.querySelector('[data-screen=inventory]'), true);
+    switchScreen('settings', null, true);
+    return true;
+  }
+  const settingsScreen = document.getElementById('screen-settings');
+  if (settingsScreen && settingsScreen.classList.contains('active')) {
+    switchScreen('inventory', null, true);
     return true;
   }
 
@@ -2394,24 +2635,138 @@ function save() {
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
 // ══════════════════════════════════════════
-//  DEMO DATA — opt-in sample instruments (fictional makes, fake serials)
+//  SAMPLE INSTRUMENTS — opt-in. Real instruments with photos, no serials or prices.
 // ══════════════════════════════════════════
-function loadDemoData() {
-  if (inventory.length && !confirm('Add demo instruments to your existing vault?')) return;
+const SAMPLE_INSTRUMENTS = [
+  {
+    "make": "Gibson",
+    "model": "Les Paul Standard",
+    "type": "GUITAR",
+    "family": "STRINGED",
+    "year": "1959",
+    "country": "USA",
+    "finish": "Sunburst",
+    "body_material": "Mahogany body, Maple top",
+    "neck_material": "Mahogany neck, Rosewood fretboard",
+    "condition": "EXCELLENT",
+    "value": "450000",
+    "notes": "Burst of the century. PAF pickups intact. OHSC.",
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Full_front_R9_Les_Paul.jpg/330px-Full_front_R9_Les_Paul.jpg"
+  },
+  {
+    "make": "Fender",
+    "model": "Stratocaster",
+    "type": "GUITAR",
+    "family": "STRINGED",
+    "year": "1965",
+    "country": "USA",
+    "finish": "Olympic White",
+    "body_material": "Alder body",
+    "neck_material": "Maple neck, Rosewood fretboard",
+    "condition": "VERY GOOD",
+    "value": "28000",
+    "notes": "Transition year. Original tremolo arm.",
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Black_Strat.jpg/330px-Black_Strat.jpg"
+  },
+  {
+    "make": "Steinway",
+    "model": "Model D Concert Grand",
+    "type": "PIANO",
+    "family": "KEYBOARD",
+    "year": "1978",
+    "country": "USA",
+    "finish": "Ebony Polish",
+    "body_material": "Spruce soundboard, Maple rim",
+    "condition": "EXCELLENT",
+    "value": "180000",
+    "notes": "9-foot concert grand. Rebuilt hammers 2018.",
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Steinway_%C3%A0_Leipzig_-_cropped.jpg/330px-Steinway_%C3%A0_Leipzig_-_cropped.jpg"
+  },
+  {
+    "make": "Selmer",
+    "model": "Mark VI Alto Saxophone",
+    "type": "SAXOPHONE",
+    "family": "WOODWIND",
+    "year": "1966",
+    "country": "France",
+    "finish": "Lacquer",
+    "body_material": "Brass body",
+    "key": "Eb",
+    "condition": "VERY GOOD",
+    "value": "14000",
+    "notes": "Original lacquer 85%. G1 neck. Absolute holy grail of altos.",
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Lou_Donaldson_Quartet_2015_%2820259143008%29.jpg/330px-Lou_Donaldson_Quartet_2015_%2820259143008%29.jpg"
+  },
+  {
+    "make": "Squier",
+    "model": "Classic Vibe '50s Telecaster",
+    "type": "GUITAR",
+    "family": "STRINGED",
+    "year": "2010",
+    "country": "Indonesia",
+    "finish": "Butterscotch Blonde",
+    "body_material": "Pine",
+    "neck_material": "Maple neck, Maple fretboard",
+    "condition": "EXCELLENT",
+    "value": "449.99",
+    "notes": "The Squier Classic Vibe '50s Telecaster is a vintage-style electric guitar with a pine body, maple neck, and two single-coil pickups. It is designed to capture the look and sound of the classic 1950s Telecaster at an affordable price point.",
+    "image_url": "https://media.sweetwater.com/m/products/image/4dd6f1ee3aqBSF0Dnvepre54Wre0ldrRYzuZvRzO.wm-dh.jpg?quality=82&height=750&ws=s&ha=4dd6f1ee3a945de7"
+  },
+  {
+    "make": "Donner",
+    "model": "Hush X Pro",
+    "type": "GUITAR",
+    "family": "STRINGED",
+    "year": "2020",
+    "country": "China",
+    "body_material": "Mahogany",
+    "neck_material": "Maple",
+    "condition": "EXCELLENT",
+    "value": "299",
+    "notes": "The Donner Hush X Pro is an electric guitar designed for beginners and intermediate players, featuring a mahogany body and a maple neck. It has a range of tonal options and is suitable for various music genres, including rock, pop, and blues.",
+    "image_url": "https://us.donnermusic.com/cdn/shop/files/HUSHXPRO_2.webp?v=1760085241&width=800"
+  },
+  {
+    "make": "Donner",
+    "model": "Hush I",
+    "type": "GUITAR",
+    "family": "STRINGED",
+    "year": "2018",
+    "country": "China",
+    "body_material": "Basswood",
+    "neck_material": "Maple",
+    "condition": "EXCELLENT",
+    "value": "229",
+    "notes": "The Donner Hush I is a budget-friendly electric guitar designed for beginners, featuring a basswood body and a maple neck. It comes with a set of humbucker pickups, providing a rich and versatile tone suitable for various music genres.",
+    "image_url": "https://us.donnermusic.com/cdn/shop/files/HUSH_I.jpg?v=1740725672&width=1600"
+  },
+  {
+    "make": "Donner",
+    "model": "Rising G1",
+    "type": "GUITAR",
+    "family": "STRINGED",
+    "year": "2020",
+    "country": "China",
+    "finish": "Natural, Black, Sunburst",
+    "body_material": "Mahogany body, Flamed Maple top",
+    "neck_material": "Mahogany neck, Rosewood fretboard",
+    "condition": "EXCELLENT",
+    "value": "429",
+    "notes": "The Donner Rising G1 is a solid-body electric guitar with a mahogany body and flamed maple top, offering a range of tonal possibilities. It features a mahogany neck with a rosewood fretboard and a pair of high-output humbucker pickups, making it suitable for a variety of musical styles.",
+    "image_url": "https://cdn.shopify.com/s/files/1/1384/9629/files/60000.jpg?v=1752647632"
+  }
+];
+
+async function loadDemoData() {
+  if (inventory.length && !(await askConfirm({ title: 'Add sample instruments?', message: 'They will be added to your current collection. You can delete them any time.', okLabel: 'Add samples' }))) return;
+  const have = new Set(inventory.map(g => ((g.make || '') + '|' + (g.model || '')).toLowerCase()));
+  const fresh = SAMPLE_INSTRUMENTS.filter(d => !have.has((d.make + '|' + d.model).toLowerCase()));
+  if (!fresh.length) { showToast('The samples are already in your collection', 'info'); return; }
   const now = new Date().toISOString();
-  const demo = [
-    { make:'Harlow & Vane', model:'Meridian Standard', type:'GUITAR', family:'STRINGED', year:'2019', country:'USA', finish:'Honey Sunburst', body_material:'Mahogany, maple cap', neck_material:'Maple', condition:'EXCELLENT', value:'1850', purchase_price:'1400', serial_number:'DEMO-0001', notes:'Demo instrument. Fresh setup, new strings.',
-      ai_description:'A fictional demo instrument. Real entries get an AI-written profile covering history, construction, playability and collectibility.' },
-    { make:'Kestrel Audio', model:'Nightjar Bass 4', type:'BASS', family:'STRINGED', year:'2016', country:'Japan', finish:'Matte Black', body_material:'Alder', neck_material:'Maple', condition:'VERY GOOD', value:'920', purchase_price:'650', serial_number:'DEMO-0002', notes:'Demo instrument. Gigged twice a month.' },
-    { make:'Alder & Finch', model:'C-210 Grand', type:'PIANO', family:'KEYBOARD', year:'1994', country:'Germany', finish:'Ebony Polish', body_material:'Spruce soundboard', neck_material:'', condition:'EXCELLENT', value:'24000', purchase_price:'15500', serial_number:'DEMO-0003', notes:'Demo instrument. Tuned every spring.' },
-    { make:'Brass & Reed Co.', model:'Brightline Alto', type:'SAXOPHONE', family:'WOODWIND', year:'2008', country:'France', finish:'Original lacquer', body_material:'Brass', neck_material:'', condition:'VERY GOOD', value:'3200', purchase_price:'2100', serial_number:'DEMO-0004', notes:'Demo instrument. New pads in 2024.' },
-    { make:'Marlowe', model:'Tidewater Concert Ukulele', type:'UKULELE', family:'STRINGED', year:'2021', country:'Hawaii, USA', finish:'Natural satin', body_material:'Solid koa', neck_material:'Mahogany', condition:'EXCELLENT', value:'640', purchase_price:'590', serial_number:'DEMO-0005', notes:'Demo instrument.' },
-    { make:'Copperline', model:'Pulse 8 Synth', type:'SYNTHESIZER', family:'ELECTRONIC', year:'2022', country:'Sweden', finish:'Brushed steel', body_material:'Aluminium', neck_material:'', condition:'EXCELLENT', value:'1100', purchase_price:'1100', serial_number:'DEMO-0006', notes:'Demo instrument.' }
-  ].map(d => Object.assign({ id: uid(), added: now, image_url: '', image_fetched: true, demo: true }, d));
-  inventory = inventory.concat(demo);
-  save();
-  renderInventory();
-  showToast('Loaded ' + demo.length + ' demo instruments', 'success');
+  inventory = inventory.concat(fresh.map(d => Object.assign({ id: uid(), added: now, image_fetched: true, demo: true }, d)));
+  save(); renderInventory();
+  if (document.body.dataset.page !== 'inventory') switchScreen('inventory');
+  showToast('Added ' + fresh.length + ' sample instruments', 'success');
 }
 
 // ══════════════════════════════════════════
@@ -2436,6 +2791,8 @@ function renderInventory() {
   const typeF = document.getElementById('typeFilter').value;
   const familyF = document.getElementById('familyFilter').value;
   const sortV = document.getElementById('sortSelect').value;
+  const storageF = document.getElementById('storageFilter').value;
+  updateFilterBadge();
   const gigsOnly = document.getElementById('headerGigs').classList.contains('active');
 
   let items = inventory.filter(g => {
@@ -2444,6 +2801,7 @@ function renderInventory() {
     return (!q || text.includes(q))
       && (!typeF || g.type === typeF)
       && (!familyF || g.family === familyF)
+      && (!storageF || g.storage_location === storageF)
       && (!gigsOnly || gigs > 0);
   });
 
@@ -2464,12 +2822,24 @@ function renderInventory() {
   grid.className = 'inventory-grid' + (currentView !== 'grid' ? ' view-' + currentView : '');
 
   if (!items.length) {
-    grid.innerHTML = `<div class="empty-state">
-      <div class="empty-icon">🎼</div>
-      <h3>${inventory.length ? 'NO RESULTS' : 'VAULT IS EMPTY'}</h3>
-      <p>${inventory.length ? 'Try adjusting your filters' : 'Add an instrument manually or scan with camera'}</p>
-      ${inventory.length ? '' : '<button class="btn btn-sm" style="margin-top:14px" onclick="loadDemoData()">LOAD DEMO INSTRUMENTS</button>'}
-    </div>`;
+    grid.innerHTML = inventory.length
+      ? `<div class="empty-state">
+          <div class="empty-art">${icon('search', 42)}</div>
+          <h3>No matches</h3>
+          <p>Nothing fits that search or filter. Try something broader.</p>
+          <div class="empty-actions"><button class="btn" onclick="clearFilters()">Clear search &amp; filters</button></div>
+        </div>`
+      : `<div class="empty-state">
+          <div class="empty-art">${icon('music', 42)}</div>
+          <h3>Start your collection</h3>
+          <p>Add your first instrument, scan a headstock or label with your camera, or restore a backup.</p>
+          <div class="empty-actions">
+            <button class="btn btn-primary" onclick="openAddModal()">Add an instrument</button>
+            <button class="btn" onclick="openCamera()">Scan with camera</button>
+            <button class="btn" onclick="loadDemoData()">Try sample instruments</button>
+            <button class="btn" onclick="switchScreen('import-export')">Restore a backup</button>
+          </div>
+        </div>`;
     updateStats();
     return;
   }
@@ -2484,7 +2854,7 @@ function renderInventory() {
         <div class="inst-card-body">
           <div class="inst-card-name-block">
             <div class="inst-card-brand">${g.make||'—'}</div>
-            <div class="inst-card-name">${g.model||'UNKNOWN MODEL'}</div>
+            <div class="inst-card-name">${g.model||'Unknown model'}</div>
           </div>
           <div class="inst-card-meta">
             ${g.year ? `<span class="meta-chip">${g.year}</span>` : ''}
@@ -2506,7 +2876,7 @@ function renderInventory() {
         </div>
         <div class="inst-card-body">
           <div class="inst-card-brand">${g.make||'—'}</div>
-          <div class="inst-card-name">${g.model||'UNKNOWN MODEL'}</div>
+          <div class="inst-card-name">${g.model||'Unknown model'}</div>
           <div class="inst-card-meta">
             ${g.year ? `<span class="meta-chip">${g.year}</span>` : ''}
             ${g.country ? `<span class="meta-chip">${g.country}</span>` : ''}
@@ -2533,9 +2903,14 @@ function cardImageHTML(g) {
 }
 
 function updateStats() {
-  document.getElementById('headerCount').textContent = inventory.length + ' INSTRUMENT' + (inventory.length !== 1 ? 'S' : '');
+  document.getElementById('headerCount').textContent = String(inventory.length);
+  document.getElementById('headerCountLabel').textContent = inventory.length === 1 ? 'Instrument' : 'Instruments';
   const total = inventory.reduce((s, g) => s + (Number(g.value) || 0), 0);
-  document.getElementById('vaultValue').textContent = total > 0 ? '$' + total.toLocaleString() : '$0';
+  const valEl = document.getElementById('vaultValue');
+  valEl.textContent = total >= 1e6 ? '$' + (total / 1e6).toFixed(2).replace(/\.?0+$/, '') + 'M'
+                    : total >= 1e5 ? '$' + Math.round(total / 1e3) + 'K'
+                    : '$' + total.toLocaleString();
+  valEl.title = '$' + total.toLocaleString();
   const gigs = inventory.reduce((s, g) => s + ((g.gig_log && g.gig_log.total) || 0), 0);
   document.getElementById('gigsTotal').textContent = gigs.toLocaleString();
   // Background image prefetch — stagger so we don't hammer APIs
@@ -2576,6 +2951,26 @@ function prefetchMissingImages() {
 
 function toggleGigsFilter(el) {
   el.classList.toggle('active');
+  el.setAttribute('aria-pressed', el.classList.contains('active') ? 'true' : 'false');
+  renderInventory();
+}
+
+function toggleFilters() {
+  const p = document.getElementById('filterPanel');
+  const open = p.classList.toggle('open');
+  document.getElementById('filterBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function updateFilterBadge() {
+  const n = ['typeFilter', 'familyFilter', 'storageFilter'].filter(id => document.getElementById(id).value).length
+          + (document.getElementById('sortSelect').value !== 'default' ? 1 : 0);
+  const el = document.getElementById('filterCount');
+  el.textContent = n; el.classList.toggle('show', n > 0);
+}
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  ['typeFilter', 'familyFilter', 'storageFilter'].forEach(id => document.getElementById(id).value = '');
+  const g = document.getElementById('headerGigs');
+  g.classList.remove('active'); g.setAttribute('aria-pressed', 'false');
   renderInventory();
 }
 
@@ -2610,12 +3005,10 @@ function showDetail(id) {
 
   content.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-      <div class="detail-back" onclick="switchScreen('inventory',document.querySelector('[data-screen=inventory]'));document.getElementById('detailTab').style.display='none'">
-        ← BACK TO VAULT
-      </div>
+      <div class="detail-back" role="button" tabindex="0" onclick="switchScreen('inventory')">‹ Collection</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-sm" id="detailPrevBtn">‹ PREV</button>
-        <button class="btn btn-sm" id="detailNextBtn">NEXT ›</button>
+        <button class="btn btn-sm" id="detailPrevBtn">‹ Prev</button>
+        <button class="btn btn-sm" id="detailNextBtn">Next ›</button>
       </div>
     </div>
     <div class="detail-hero">
@@ -2627,7 +3020,7 @@ function showDetail(id) {
           }
         </div>
         <label class="detail-img-upload-btn" title="Upload or replace photo">
-          📷 ${g.image_url ? 'REPLACE PHOTO' : 'ADD PHOTO'}
+          📷 ${g.image_url ? 'Replace photo' : 'Add photo'}
           <input type="file" accept="image/*" style="display:none" onchange="handleDetailImageUpload(event,'${g.id}')">
         </label>
       </div>
@@ -2653,9 +3046,9 @@ function showDetail(id) {
         </div>
         ${g.notes ? `<div class="detail-description" style="font-size:13px"><strong style="color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:0.3px">NOTES</strong><br><br>${g.notes}</div>` : ''}
         <div class="detail-actions">
-          <button class="btn" onclick="openEditModal('${g.id}')">✏ EDIT</button>
+          <button class="btn" onclick="openEditModal('${g.id}')">Edit</button>
           <button class="btn" id="detailAiUpdateBtn" onclick="aiUpdateFromDetail('${g.id}')" title="${g.ai_specs_fetched ? 'Specs already fetched — click to refresh' : 'Auto-fill specs from AI'}">${g.ai_specs_fetched ? '✓ AI SPECS' : '🤖 AI UPDATE'}</button>
-          <button class="btn btn-danger" onclick="deleteInstrument('${g.id}')">🗑 DELETE</button>
+          <button class="btn btn-danger" onclick="deleteInstrument('${g.id}')">Delete</button>
         </div>
         <div id="detailAiStatus" style="display:none;margin-top:10px">
           <span style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--accent)">
@@ -2667,7 +3060,7 @@ function showDetail(id) {
     </div>
     <div style="margin-top:24px">
       <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
-        <span>AI INSTRUMENT PROFILE</span>
+        <span>AI instrument profile</span>
         <button id="aiDescRefreshBtn" onclick="refreshAIDescription('${g.id}')" style="background:none;border:1px solid var(--border);color:var(--text-dim);font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:14px;cursor:pointer;${g.ai_description ? '' : 'display:none'}">↺ REFRESH</button>
       </div>
       <div class="detail-description" id="aiDesc">
@@ -2682,9 +3075,7 @@ function showDetail(id) {
   content.innerHTML += buildSmgSections(g);
 
   currentDetailId = id;
-  const detailTab = document.getElementById('detailTab');
-  detailTab.style.display = 'block';
-  switchScreen('detail-screen', detailTab);
+  switchScreen('detail-screen');
   history.pushState({ type: 'detail', id }, '', location.pathname + location.search);
   updateDetailNav(id);
   if (!g.ai_description) fetchAIDescription(g);
@@ -3070,7 +3461,7 @@ async function fetchAIDescription(g) {
     return;
   }
   if (!getApiKey()) {
-    el.innerHTML = `<em style="color:var(--accent)">⚙ Add your Groq API key in Settings to enable AI profiles.</em>`;
+    el.innerHTML = `<em style="color:var(--accent)">Add your Groq API key in Settings to enable AI profiles.</em>`;
     return;
   }
   try {
@@ -3266,7 +3657,7 @@ function clearModalImage() {
 // ══════════════════════════════════════════
 function openAddModal() {
   editingId = null;
-  document.getElementById('modalTitle').textContent = 'ADD INSTRUMENT';
+  document.getElementById('modalTitle').textContent = 'Add instrument';
   ['make','model','year','serial','country','finish','body','neck','key','value','purchase','notes','image'].forEach(f => {
     const el = document.getElementById('f-'+f);
     if (el) el.value = '';
@@ -3286,7 +3677,7 @@ function openEditModal(id) {
   editingId = id;
   const g = inventory.find(x=>x.id===id);
   if (!g) return;
-  document.getElementById('modalTitle').textContent = 'EDIT INSTRUMENT';
+  document.getElementById('modalTitle').textContent = 'Edit instrument';
   document.getElementById('f-make').value = g.make||'';
   document.getElementById('f-model').value = g.model||'';
   document.getElementById('f-type').value = g.type||'';
@@ -3339,7 +3730,7 @@ function saveInstrument() {
   } else {
     const newInst = { id: uid(), ...data, added: new Date().toISOString() };
     inventory.push(newInst);
-    showToast('Instrument added to vault', 'success');
+    showToast('Instrument added to your collection', 'success');
     // Auto-fetch manufacturer image if user didn't set one
     if (!newInst.image_url && getApiKey()) { setTimeout(() => fetchManufacturerImage(newInst), 800); }
   }
@@ -3347,12 +3738,13 @@ function saveInstrument() {
   clearModalImage();
 }
 
-function deleteInstrument(id) {
-  if (!confirm('Remove this instrument from the vault?')) return;
-  inventory = inventory.filter(x=>x.id!==id);
+async function deleteInstrument(id) {
+  const g = inventory.find(x => x.id === id);
+  const name = g ? [g.make, g.model].filter(Boolean).join(' ') : '';
+  if (!(await askConfirm({ title: 'Remove this instrument?', message: (name ? name + ' will be' : 'It will be') + ' removed from your collection.', okLabel: 'Remove', danger: true }))) return;
+  inventory = inventory.filter(x => x.id !== id);
   save(); renderInventory();
-  document.getElementById('detailTab').style.display='none';
-  switchScreen('inventory', document.querySelector('[data-screen=inventory]'));
+  switchScreen('inventory');
   showToast('Instrument removed', 'info');
 }
 
@@ -3440,7 +3832,7 @@ async function captureAndAnalyze() {
   document.getElementById('ocrResult').textContent = 'Processing...';
 
   if (!getApiKey()) {
-    document.getElementById('ocrResult').textContent = '⚠ No Groq API key set. Click ✕, then go to ⚙ Settings.';
+    document.getElementById('ocrResult').textContent = 'No Groq API key set. Close this, then add your key in Settings.';
     document.getElementById('cameraStatus').textContent = 'API key required';
     return;
   }
@@ -3551,12 +3943,12 @@ Use actual known specifications for this instrument. Empty string for truly unkn
   inventory.push(entry);
   save(); renderInventory();
   stopCamera();
-  showToast(`✓ ${entry.make} ${entry.model} added to vault`, 'success');
+  showToast(`✓ ${entry.make} ${entry.model} added to your collection`, 'success');
   setTimeout(() => showDetail(entry.id), 300);
   // Auto-fetch manufacturer image if no image was set
   if (!entry.image_url && getApiKey()) fetchManufacturerImage(entry);
   scannedData = {};
-  btn.disabled = false; btn.textContent = '＋ ADD TO VAULT';
+  btn.disabled = false; btn.textContent = '＋ Add to collection';
   statusEl.style.display = 'none';
 }
 
@@ -3570,7 +3962,7 @@ function handleFileDrop(e) {
   if (file) processImportFile(file);
 }
 
-function importFile(e) { processImportFile(e.target.files[0]); }
+function importFile(e) { const f = e.target.files[0]; e.target.value = ''; processImportFile(f); }
 
 function processImportFile(file) {
   if (!file) return;
@@ -3655,6 +4047,8 @@ function exportFullBackup() {
                   ? (localStorage.getItem('unplugged_api_key') || '') : '',
     text_model: localStorage.getItem('unplugged_text_model') || '',
     view:       localStorage.getItem('unplugged_view') || 'grid',
+    theme:      localStorage.getItem('unplugged_theme') || 'auto',
+    quick_tool: localStorage.getItem('unplugged_quick_tool') || '',
     laz:        localStorage.getItem('unplugged_laz') || '',
     notes:      JSON.parse(localStorage.getItem('unplugged_notes') || '{}'),
     song_cache: JSON.parse(localStorage.getItem('unplugged_song_cache') || '{}'),
@@ -3670,13 +4064,16 @@ function exportFullBackup() {
   a.download = `unplugged-backup-${today}.json`;
   document.body.appendChild(a); a.click();
   setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
-  showToast(`Backup exported: ${inventory.length} instruments`, 'success');
+  localStorage.setItem('unplugged_last_backup', new Date().toISOString());
+  updateBackupNotes();
+  showToast(`Backup saved: ${inventory.length} instruments`, 'success');
 }
 
 let _pendingBackup = null;
 
 function loadBackupFile(e) {
   const file = e.target.files[0];
+  e.target.value = '';
   if (!file) return;
   handleBackupFileRead(file);
 }
@@ -3700,7 +4097,7 @@ function handleBackupFileRead(file) {
       const originalsCount = (data.originals || []).length;
       const preview = document.getElementById('backupPreview');
       preview.style.display = 'block';
-      preview.textContent = `✓ ${count} instrument${count !== 1 ? 's' : ''}${hasKey ? ' + API key' : ''}${hasNotes ? ' + notes' : ''}${originalsCount ? ` + ${originalsCount} original song${originalsCount !== 1 ? 's' : ''}` : ''} ready to restore`;
+      preview.textContent = `${count} instrument${count !== 1 ? 's' : ''}${hasKey ? ' + API key' : ''}${hasNotes ? ' + notes' : ''}${originalsCount ? ` + ${originalsCount} original song${originalsCount !== 1 ? 's' : ''}` : ''} found in this backup`;
       document.getElementById('restoreMergeBtn').disabled   = false;
       document.getElementById('restoreReplaceBtn').disabled = false;
     } catch(_) {
@@ -3710,16 +4107,30 @@ function handleBackupFileRead(file) {
   reader.readAsText(file);
 }
 
+// Same instrument? Serial number decides when both have one; otherwise same id, then make + model + year.
+function sameInstrument(a, b) {
+  const norm = v => String(v || '').trim().toLowerCase();
+  const mk = g => norm(g.make) + '|' + norm(String(g.model || '').split(' - ')[0]);
+  if (a.demo || b.demo) return mk(a) === mk(b);
+  const sa = (a.serial_number || '').trim().toLowerCase(), sb = (b.serial_number || '').trim().toLowerCase();
+  if (sa && sb) return sa === sb;
+  if (a.id && b.id && a.id === b.id) return true;
+  if (sa || sb) return false;
+  const k = g => [g.make, g.model, g.year].map(v => String(v || '').trim().toLowerCase()).join('|');
+  return k(a) === k(b);
+}
+
 function restoreBackupMerge() {
   if (!_pendingBackup) return;
   const incoming = _pendingBackup.inventory || [];
   let added = 0, updated = 0;
   incoming.forEach(item => {
-    const idx = inventory.findIndex(g =>
-      g.serial_number && item.serial_number &&
-      g.serial_number.trim() === item.serial_number.trim()
-    );
-    if (idx >= 0) { inventory[idx] = { ...inventory[idx], ...item }; updated++; }
+    const idx = inventory.findIndex(g => sameInstrument(g, item));
+    if (idx >= 0) {
+      const merged = { ...inventory[idx], ...item };
+      if (!item.demo) delete merged.demo;   // a real entry replaces a sample one
+      inventory[idx] = merged; updated++;
+    }
     else { inventory.push({ ...item, id: item.id || uid() }); added++; }
   });
   if (_pendingBackup.api_key) localStorage.setItem('unplugged_api_key', _pendingBackup.api_key);
@@ -3741,13 +4152,15 @@ function restoreBackupMerge() {
   _pendingBackup = null;
 }
 
-function restoreBackupReplace() {
+async function restoreBackupReplace() {
   if (!_pendingBackup) return;
-  if (!confirm(`Replace ALL ${inventory.length} current instruments with ${(_pendingBackup.inventory||[]).length} from backup? This cannot be undone.`)) return;
+  if (!(await askConfirm({ title: 'Replace everything?', message: `Your ${inventory.length} current instruments will be replaced by the ${(_pendingBackup.inventory||[]).length} in this backup. This cannot be undone.`, okLabel: 'Replace all', danger: true }))) return;
   inventory = (_pendingBackup.inventory || []).map(item => ({ ...item, id: item.id || uid() }));
   if (_pendingBackup.api_key) localStorage.setItem('unplugged_api_key', _pendingBackup.api_key);
   if (_pendingBackup.text_model) localStorage.setItem('unplugged_text_model', _pendingBackup.text_model);
   if (_pendingBackup.view) localStorage.setItem('unplugged_view', _pendingBackup.view);
+  if (_pendingBackup.theme) { localStorage.setItem('unplugged_theme', _pendingBackup.theme); applyTheme(); }
+  if (_pendingBackup.quick_tool) { localStorage.setItem('unplugged_quick_tool', _pendingBackup.quick_tool); renderQuickTab(); }
   if (_pendingBackup.notes) localStorage.setItem('unplugged_notes', JSON.stringify(_pendingBackup.notes));
   if (_pendingBackup.learn_vault) localStorage.setItem('unplugged_learn_vault', JSON.stringify(_pendingBackup.learn_vault));
   if (_pendingBackup.setlists) localStorage.setItem('unplugged_setlists', JSON.stringify(_pendingBackup.setlists));
@@ -3813,7 +4226,7 @@ function exportInsurancePDF() {
       .total td { font-weight: bold; border-top: 2px solid #111; }
       @media print { body { padding: 20px; } }
     </style></head><body>
-    <h1>🎸 UNPLUGGED — Instrument Vault</h1>
+    <h1>🎸 Unplugged — Instrument Collection</h1>
     <div class="sub">Insurance Report · Generated ${date}</div>
     <div class="summary">
       <div><strong>${inventory.length}</strong>Total Instruments</div>
@@ -3915,11 +4328,8 @@ function updateApiStatus() {
   const dot  = document.getElementById('apiStatusDot');
   const text = document.getElementById('apiStatusText');
   if (!dot || !text) return;
-  if (!key) {
-    dot.textContent  = '🔴'; text.textContent = 'API: NOT SET';
-  } else {
-    dot.textContent  = '🟢'; text.textContent = 'API: ACTIVE';
-  }
+  dot.className = 'status-dot ' + (key ? 'on' : 'off');
+  text.textContent = key ? 'Key saved on this device' : 'No key yet, so AI features are off';
 }
 
 // Import preview hook — show count before committing
@@ -3950,14 +4360,14 @@ function exportXLSX() {
   try {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Vault');
+    XLSX.utils.book_append_sheet(wb, ws, 'Collection');
     const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
     const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href=url; a.download='unplugged_vault.xlsx';
+    const a = document.createElement('a'); a.href=url; a.download='unplugged_collection.xlsx';
     document.body.appendChild(a); a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
-    showToast('Vault exported', 'success');
+    showToast('Collection exported', 'success');
   } catch(e) { showToast('Export failed: ' + e.message, 'error'); }
 }
 
@@ -3968,7 +4378,7 @@ function exportCSV() {
   const csv = [headers.join(','), ...rows].join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='unplugged_vault.csv';
+  const a = document.createElement('a'); a.href=url; a.download='unplugged_collection.csv';
   document.body.appendChild(a); a.click();
   setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
   showToast('CSV exported', 'success');
@@ -3987,16 +4397,150 @@ function showToast(msg, type='info') {
 }
 
 // ══════════════════════════════════════════
+//  ICONS (inline SVG, stroke = currentColor so they follow the theme)
+// ══════════════════════════════════════════
+const ICONS = {
+  grid: '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/>',
+  tool: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  filter: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
+  archive: '<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/>',
+  note: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  gauge: '<path d="M12 3v3M4.2 8.2l2.1 2.1M19.8 8.2l-2.1 2.1"/><path d="M5 19a8 8 0 1 1 14 0"/><path d="M12 19l3.5-7"/>',
+  metronome: '<path d="M8 3h8l3 18H5L8 3z"/><path d="M12 17l4-9"/><circle cx="16" cy="8" r="1"/>',
+  mic: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>',
+  chords: '<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 8h14M5 13h14M5 18h14M10 3v18M14 3v18"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+  timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>',
+  play: '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'
+};
+function icon(name, size) {
+  const p = ICONS[name]; if (!p) return '';
+  const z = size ? ` width="${size}" height="${size}"` : '';
+  return `<svg viewBox="0 0 24 24"${z} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${p}</svg>`;
+}
+function hydrateIcons() { document.querySelectorAll('[data-ico]').forEach(el => { el.innerHTML = icon(el.dataset.ico); }); }
+
+// ══════════════════════════════════════════
+//  THEME — auto (follow device) / light / dark
+// ══════════════════════════════════════════
+function getThemePref() { const t = localStorage.getItem('unplugged_theme'); return (t === 'light' || t === 'dark') ? t : 'auto'; }
+function resolveTheme(pref) { return pref === 'auto' ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : pref; }
+function applyTheme() {
+  const t = resolveTheme(getThemePref());
+  document.documentElement.setAttribute('data-theme', t);
+  const m = document.getElementById('metaTheme');
+  if (m) m.setAttribute('content', t === 'light' ? '#F5F1E9' : '#0F0F12');
+}
+function renderThemeSeg() {
+  document.querySelectorAll('#themeSeg button').forEach(b => {
+    const on = b.dataset.themeOpt === getThemePref();
+    b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+}
+function setTheme(pref) { localStorage.setItem('unplugged_theme', pref); applyTheme(); renderThemeSeg(); }
+try {
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (getThemePref() === 'auto') applyTheme(); });
+} catch (_) {}
+
+// ══════════════════════════════════════════
+//  QUICK BUTTON — one user-chosen tool, one tap from anywhere
+// ══════════════════════════════════════════
+const QUICK_TOOLS = {
+  tuner:         { label: 'Tuner',     name: 'Tuner',            icon: 'gauge',     desc: 'Chromatic tuner using your mic' },
+  metronome:      { label: 'Metronome', name: 'Metronome',        icon: 'metronome', desc: 'Tap tempo, BPM and time signatures' },
+  recorder:       { label: 'Record',    name: 'Record',           icon: 'mic',       desc: 'Capture audio from your mic or interface' },
+  chorddict:      { label: 'Chords',    name: 'Chord dictionary', icon: 'chords',    desc: 'Look up chords and voicings' },
+  songsearch:     { label: 'Songs',     name: 'Song search',      icon: 'search',    desc: 'Tabs, chords and lyrics' },
+  setlist:        { label: 'Setlist',   name: 'Setlist builder',  icon: 'list',      desc: 'Build and reorder gig setlists' },
+  practicetimer:  { label: 'Practice',  name: 'Practice timer',   icon: 'timer',     desc: 'Sessions, daily goals and streaks' },
+  learn:          { label: 'Learn',     name: 'Learn to play',    icon: 'play',      desc: 'Step-by-step lessons with mic feedback' },
+  originals:      { label: 'Originals', name: 'Originals',        icon: 'pen',       desc: 'Keep your own lyrics and ideas' }
+};
+function getQuickTool() { const t = localStorage.getItem('unplugged_quick_tool'); return QUICK_TOOLS[t] ? t : 'tuner'; }
+function renderQuickTab() {
+  const k = getQuickTool(), q = QUICK_TOOLS[k];
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set('quickTabIco', el => el.innerHTML = icon(q.icon));
+  set('quickTabLabel', el => el.textContent = q.label);
+  set('quickTab', el => el.setAttribute('aria-label', q.name + ', quick tool. Press and hold to change.'));
+  set('settingsQuickIco', el => el.innerHTML = icon(q.icon));
+  set('settingsQuickLabel', el => el.textContent = q.name);
+  document.querySelectorAll('.laz-card').forEach(c => c.classList.toggle('is-quick', c.dataset.tool === k));
+}
+function openQuickTool() {
+  const k = getQuickTool();
+  if (document.getElementById('screen-laz').classList.contains('active')) {
+    // leaving a panel that may hold the mic: stop it like the Back button does
+    try { stopTuner(); stopMetronome(); } catch (_) {}
+  }
+  switchScreen('laz');
+  showLazPanel(k);
+}
+function openQuickPicker() {
+  const cur = getQuickTool();
+  document.getElementById('quickList').innerHTML = Object.entries(QUICK_TOOLS).map(([k, q]) =>
+    `<button class="pick${k === cur ? ' sel' : ''}" type="button" onclick="setQuickTool('${k}')">
+       <span class="row-ico">${icon(q.icon)}</span>
+       <span class="row-main"><span class="row-title" style="display:block">${q.name}</span><span class="row-sub" style="display:block">${q.desc}</span></span>
+       ${k === cur ? '<span class="check">✓</span>' : ''}
+     </button>`).join('');
+  openModal('quickModal');
+}
+function setQuickTool(k) {
+  if (!QUICK_TOOLS[k]) return;
+  localStorage.setItem('unplugged_quick_tool', k);
+  renderQuickTab(); closeModal('quickModal');
+  showToast(QUICK_TOOLS[k].name + ' is now your quick button', 'success');
+}
+function bindQuickTab() {
+  const b = document.getElementById('quickTab'); if (!b) return;
+  let timer = null, long = false;
+  b.addEventListener('pointerdown', () => {
+    long = false; clearTimeout(timer);
+    timer = setTimeout(() => { long = true; if (navigator.vibrate) navigator.vibrate(12); openQuickPicker(); }, 550);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(timer)));
+  b.addEventListener('click', e => { if (long) { e.preventDefault(); long = false; return; } openQuickTool(); });
+  b.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+// ══════════════════════════════════════════
+//  SETTINGS SCREEN GLUE
+// ══════════════════════════════════════════
+function updateBackupNotes() {
+  const d = localStorage.getItem('unplugged_last_backup');
+  const when = d ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+  const a = document.getElementById('backupRowSub'); if (a) a.textContent = d ? 'Last backup ' + when : 'Not backed up yet';
+  const b = document.getElementById('lastBackupNote');
+  if (b) b.textContent = d ? 'Last backup: ' + when : 'No backup yet. Your collection lives only on this device, so it is worth downloading one.';
+}
+function onSettingsOpen() { loadSettings(); renderThemeSeg(); renderQuickTab(); updateBackupNotes(); updateApiStatus(); }
+
+// ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
 function init() {
+  hydrateIcons();
+  applyTheme(); renderThemeSeg();
+  renderQuickTab(); bindQuickTab();
   setView(currentView);
   renderInventory();
+  updateBackupNotes();
 
   // Version stamp (single source of truth: APP_VERSION)
   const verEl = document.getElementById('appVersion');
   if (verEl) verEl.textContent = 'v' + APP_VERSION;
-  document.title = 'UNPLUGGED v' + APP_VERSION + ' — Instrument Vault';
+  const aboutEl = document.getElementById('aboutVersion');
+  if (aboutEl) aboutEl.textContent = 'v' + APP_VERSION;
+  document.title = 'Unplugged — Instrument Collection';
+
 }
 
 init();
@@ -4022,7 +4566,14 @@ document.addEventListener('keydown', e => {
 });
 
 function gearClick() {
-  openModal('settingsModal');
+  switchScreen('settings');
+}
+
+async function clearCollection() {
+  if (!inventory.length) { showToast('Your collection is already empty', 'info'); return; }
+  if (!(await askConfirm({ title: 'Clear your collection?', message: 'This removes all ' + inventory.length + ' instruments from this device. Download a backup first if you might want them back.', okLabel: 'Clear collection', danger: true }))) return;
+  inventory = []; save(); renderInventory();
+  showToast('Collection cleared', 'info');
 }
 
 // ── LAZ NAV ──
@@ -4592,7 +5143,7 @@ function sendSongToLearn(slug) {
 
   // Check if already in learn vault
   if (userLearnSongs.find(s => s.slug === slug)) {
-    showToast(`"${data.title}" is already in your Learn vault`, 'info');
+    showToast(`"${data.title}" is already in your Learn list`, 'info');
     showLazPanel('learn');
     return;
   }
@@ -4785,7 +5336,7 @@ async function startTeacher() {
     // User's saved song from learn vault
     const userIdx = heroSongIdx - 1000;
     songEntry = userLearnSongs[userIdx];
-    if (!songEntry) { showToast('Song not found in your vault', 'error'); return; }
+    if (!songEntry) { showToast('Song not found in your list', 'error'); return; }
     teacherSong = songEntry;
   } else {
     avail = SONGS.filter(s => s.minDiff <= 0);
@@ -4938,7 +5489,7 @@ function renderTabHorizontal(notes, currentIdx) {
   let html = `<div style="overflow-x:auto"><div style="font-family:var(--mono);display:inline-block;min-width:${totalW}px">`;
 
   strings.forEach(s => {
-    html += `<div style="display:flex;align-items:center;height:28px;border-bottom:1px solid ${s.num === 1 ? 'transparent' : 'rgba(255,255,255,0.04)'}">`;
+    html += `<div style="display:flex;align-items:center;height:28px;border-bottom:1px solid ${s.num === 1 ? 'transparent' : 'var(--ink-04)'}">`;
     html += `<span style="width:20px;color:var(--text-dim);font-size:12px;flex-shrink:0">${s.name}</span>`;
     html += `<span style="width:8px;color:var(--border-bright);flex-shrink:0">|</span>`;
 
@@ -4954,12 +5505,12 @@ function renderTabHorizontal(notes, currentIdx) {
 
       if (noteOnThisString) {
         cellContent = String(note.tab.fret);
-        cellColor = isCurrent ? '#0A0A0C' : isPlayed ? 'var(--text-dim)' : 'var(--accent-bright)';
+        cellColor = isCurrent ? 'var(--on-accent)' : isPlayed ? 'var(--text-dim)' : 'var(--accent-bright)';
         fw = 'bold';
       }
       if (isCurrent) {
         bg = noteOnThisString ? 'var(--accent)' : 'rgba(201,123,58,0.12)';
-        cellColor = noteOnThisString ? '#0A0A0C' : 'var(--text-dim)';
+        cellColor = noteOnThisString ? 'var(--on-accent)' : 'var(--text-dim)';
       }
 
       html += `<span style="display:inline-flex;align-items:center;justify-content:center;width:${CELL_W}px;height:100%;
@@ -5083,7 +5634,7 @@ function renderMiniFretboard(tab) {
   // String lines
   for (let s = 0; s < STRINGS; s++) {
     const y = 10 + s * 14 + 7;
-    svg += `<line x1="20" y1="${y}" x2="150" y2="${y}" stroke="${6-s === tab.string-1 ? 'var(--accent)' : 'rgba(255,255,255,0.15)'}" stroke-width="${s < 2 ? 1 : s < 4 ? 1.5 : 2}"/>`;
+    svg += `<line x1="20" y1="${y}" x2="150" y2="${y}" stroke="${6-s === tab.string-1 ? 'var(--accent)' : 'var(--ink-15)'}" stroke-width="${s < 2 ? 1 : s < 4 ? 1.5 : 2}"/>`;
   }
   // Dot for the note
   if (tab.fret > 0) {
@@ -5093,7 +5644,7 @@ function renderMiniFretboard(tab) {
       const stringIdx = STRINGS - tab.string; // flip: string 1 (e) is top
       const dy = 10 + stringIdx * 14 + 7;
       svg += `<circle cx="${dx}" cy="${dy}" r="8" fill="var(--accent)" opacity="0.9"/>`;
-      if (tab.finger) svg += `<text x="${dx}" y="${dy+4}" text-anchor="middle" font-size="9" fill="#0A0A0C" font-family="monospace" font-weight="bold">${tab.finger}</text>`;
+      if (tab.finger) svg += `<text x="${dx}" y="${dy+4}" text-anchor="middle" font-size="9" fill="var(--on-accent)" font-family="monospace" font-weight="bold">${tab.finger}</text>`;
     }
   } else {
     // Open string indicator — circle at nut
@@ -5971,7 +6522,7 @@ function deleteSavedSong(rawSlug) {
   const slug = songSlug(rawSlug.replace(/_/g,' ')) || rawSlug;
   localStorage.removeItem('unplugged_saved_song_' + slug);
   renderSavedSongsList();
-  showToast('Song removed from vault', 'info');
+  showToast('Song removed', 'info');
 }
 
 function renderSongSearchHistory() {
@@ -6134,7 +6685,7 @@ function renderSongResult(data) {
       <button class="btn btn-sm ${alreadySaved ? '' : 'btn-primary'}" id="saveSongBtn"
         onclick="saveSongToVault()"
         style="${alreadySaved ? 'border-color:var(--green);color:var(--green)' : ''}">
-        ${alreadySaved ? '✓ SAVED' : '＋ SAVE TO VAULT'}
+        ${alreadySaved ? '✓ SAVED' : '＋ SAVE SONG'}
       </button>
       <button class="btn btn-sm" onclick="exportSongText()" title="Export as text file">📄 EXPORT</button>
       <button class="btn btn-sm" onclick="refreshSongSearch()" title="Re-fetch with full lyrics">↺ REFRESH</button>
@@ -6201,7 +6752,7 @@ function renderChordBox(chord, capo) {
   // String lines + mute/open indicators
   for (let s = 0; s < STRINGS; s++) {
     const x = margin + s * fretW;
-    svg += `<line x1="${x}" y1="20" x2="${x}" y2="${20 + 4*stringH}" stroke="rgba(255,255,255,0.2)" stroke-width="${s < 2 ? 1 : s < 4 ? 1.5 : 2}"/>`;
+    svg += `<line x1="${x}" y1="20" x2="${x}" y2="${20 + 4*stringH}" stroke="var(--ink-20)" stroke-width="${s < 2 ? 1 : s < 4 ? 1.5 : 2}"/>`;
     const f = frets[s];
     if (f === -1) svg += `<text x="${x}" y="14" text-anchor="middle" font-size="10" fill="var(--red)" font-family="monospace">✕</text>`;
     else if (f === 0) svg += `<circle cx="${x}" cy="11" r="4" fill="none" stroke="var(--text-dim)" stroke-width="1.5"/>`;
@@ -6220,7 +6771,7 @@ function renderChordBox(chord, capo) {
     const cy = 20 + (rel - 0.5) * stringH;
     svg += `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--accent)" opacity="0.9"/>`;
     const fi = fingers[s];
-    if (fi) svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8" fill="#0A0A0C" font-family="monospace" font-weight="bold">${fi}</text>`;
+    if (fi) svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8" fill="var(--on-accent)" font-family="monospace" font-weight="bold">${fi}</text>`;
   });
   svg += '</svg>';
   return `<div class="chord-box"><div class="chord-name">${chord.name}</div>${svg}</div>`;
@@ -6328,7 +6879,7 @@ function strumPlayAlong() {
     // Highlight the active strum beat in the UI
     document.querySelectorAll('.strum-beat').forEach((el, i) => {
       el.style.background = i === patPos ? 'var(--accent)' : '';
-      el.style.color      = i === patPos ? '#0A0A0C' : '';
+      el.style.color      = i === patPos ? 'var(--on-accent)' : '';
       el.style.transform  = i === patPos ? 'scale(1.15)' : 'scale(1)';
     });
     // Highlight active chord name
@@ -6522,7 +7073,7 @@ function saveSongToVault() {
     btn.style.borderColor = 'var(--green)';
     btn.style.color = 'var(--green)';
   }
-  showToast(`✓ "${currentSongData.title}" saved to your vault`, 'success');
+  showToast(`✓ "${currentSongData.title}" saved to My Songs`, 'success');
 }
 
 // ── Export current song as a plain text file ──
@@ -6949,8 +7500,8 @@ function renameSetlist() {
   renderSetlistSelector();
 }
 
-function deleteSetlist() {
-  if (!currentSetlistId || !confirm('Delete this setlist?')) return;
+async function deleteSetlist() {
+  if (!currentSetlistId || !(await askConfirm({ title: 'Delete this setlist?', message: 'This cannot be undone.', okLabel: 'Delete', danger: true }))) return;
   delete setlists[currentSetlistId];
   saveSetlists();
   const remaining = Object.keys(setlists);
@@ -7175,9 +7726,9 @@ function autosaveOriginal() {
   }, 500);
 }
 
-function deleteOriginal() {
+async function deleteOriginal() {
   if (!currentOriginalId) return;
-  if (!confirm('Delete this song? This can\'t be undone.')) return;
+  if (!(await askConfirm({ title: 'Delete this song?', message: 'This cannot be undone.', okLabel: 'Delete', danger: true }))) return;
   originalSongs = originalSongs.filter(s => s.id !== currentOriginalId);
   saveOriginals();
   closeOriginalEditor();
@@ -7194,7 +7745,7 @@ function deleteOriginal() {
       updatePromptShown = true;
       const bar = document.createElement('div');
       bar.setAttribute('role', 'status');
-      bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:12px;font-family:var(--mono);font-size:12px;color:var(--text-primary);box-shadow:0 8px 30px rgba(0,0,0,.5)';
+      bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--accent);border-radius:12px;font-family:var(--mono);font-size:12px;color:var(--text-primary);box-shadow:0 8px 30px rgba(0,0,0,.5)';
       bar.innerHTML = '<span>Update ready.</span><span><button class="btn btn-sm btn-primary" type="button" id="swReloadBtn">RELOAD</button> <button class="btn btn-sm" type="button" id="swLaterBtn" aria-label="Dismiss">LATER</button></span>';
       document.body.appendChild(bar);
       document.getElementById('swReloadBtn').onclick = () => location.reload();
