@@ -10,7 +10,7 @@
 // will happily keep serving a months-old index.html forever, even after
 // dozens of real deploys. Bumping this string is what forces a refresh.
 // Keep VERSION in sync with APP_VERSION in index.html (the in-app version stamp).
-const VERSION = '2.6';
+const VERSION = '2.7';
 const CACHE_NAME = 'unplugged-v' + VERSION;
 const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 const CACHE_URLS = [
